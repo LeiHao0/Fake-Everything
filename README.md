@@ -1,5 +1,8 @@
 QSearch(A fake Everything)
 =======
+[Everything的原理猜想与实现](http://artwalk.github.io/2012/05/26/2012-5-26-qsearch/)
+=======
+
 I written it two years ago for that I was astonished by Everything's search speed.  
 
 ------
