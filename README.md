@@ -1,12 +1,14 @@
 QSearch(A fake Everything)
 =======
-[Everything的原理猜想与实现](http://artwalk.github.io/2012/05/26/2012-5-26-qsearch/)
-=======
+
+当时写的文档在这里：[Everything的原理猜想与实现](http://artwalk.github.io/2012/05/26/2012-5-26-qsearch/)
+
+---
 
 I written it two years ago for that I was astonished by Everything's search speed.  
 
 ------
-If you don't know what is Everything, just look at [here](http://en.wikipedia.org/wiki/Everything_(software)  
+If you don't know what is Everything, just look at [here](http://en.wikipedia.org/wiki/Everything_(software))  
 
 >Everything is a proprietary freeware Windows desktop search engine that can **rapidly** find files and folders by name on an NTFS volume.
 
