@@ -1,4 +1,4 @@
-QSearch(A fake Everything)
+Fake Everything
 =======
 
 当时写的文档在这里：[Everything的原理猜想与实现](http://artwalk.github.io/2012/05/26/2012-5-26-qsearch/)
