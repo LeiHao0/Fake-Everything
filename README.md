@@ -1,9 +1,6 @@
 Fake Everything
 =======
 
-当时写的文档在这里：[Everything的原理猜想与实现](http://artwalk.github.io/2012/05/26/2012-5-26-qsearch/)
-
----
 
 I written it two years ago for that I was astonished by Everything's search speed.  
 
@@ -28,7 +25,10 @@ I want rework it someday.
 
 
 
----研究内容
+---
+#Everything的原理猜想与实现
+
+研究内容
 
 1.  读取NTFS的MFT
 
