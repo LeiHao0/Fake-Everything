@@ -2,18 +2,17 @@ Fake Everything
 =======
 
 
-I written it two years ago for that I was astonished by Everything's search speed.  
+I written it two years ago for that I was astonished by *Everything*'s search speed.  
 
 ------
-If you don't know what is Everything, just look at [here](http://en.wikipedia.org/wiki/Everything_(software))  
+If you don't know what is *Everything*, just look at [here](http://en.wikipedia.org/wiki/Everything_(software))  
 
 >Everything is a proprietary freeware Windows desktop search engine that can **rapidly** find files and folders by name on an NTFS volume.
 
-
-Considering my lack of experience on MFC and C++(I'm sorry about that), if you want to know how to get all files on your NTFS Volume and hash them, just read the **/QSearch/Volume.h**  
+Considering my lack of experience on MFC and C++ ( I'm sorry about that ), if you want to know how to get all files on your NTFS Volume and hash them, just read the **/QSearch/Volume.h**  
 
 ------
-Oh, The text was still *Chinese*  ^_^  
+Oh, The language in the picture was still Chinese  \^\_\^  
 
 ![Alt text](http://farm4.staticflickr.com/3762/10834695513_052494fb0d.jpg)  
 
@@ -53,51 +52,51 @@ I want to refactor it in someday.
 ##目  录
 ###1 引言
 ###2 NTFS简要介绍
-2.1 NTFS
-2.2 现状
+2.1 NTFS  
+2.2 现状  
 ###3 准备
-3.1 设计思路
-3.2 什么是USN
-3.3 为什么快速
+3.1 设计思路  
+3.2 什么是USN  
+3.3 为什么快速  
 3.4 环境
 ###4 程序的实现
 ####4.1 读取USN
-4.1.1 判断磁盘格式.
-4.1.2 获取驱动盘句柄
-4.1.3 初始化USN日志
-4.1.4 获取USN日志信息
-4.1.5 获取USN Journal 文件的信息
-4.1.6 删除USN 日志文件
-4.1.7 枚举所有文件的结果
+4.1.1 判断磁盘格式  
+4.1.2 获取驱动盘句柄  
+4.1.3 初始化USN日志  
+4.1.4 获取USN日志信息  
+4.1.5 获取USN Journal 文件的信息  
+4.1.6 删除USN 日志文件  
+4.1.7 枚举所有文件的结果  
 ####4.2 构建查找数据
-4.2.1 构建Vector
-4.2.2 构建哈希表.
-4.2.3 插入数据
+4.2.1 构建Vector  
+4.2.2 构建哈希表  
+4.2.3 插入数据  
 ####4.3 界面
-4.3.1 KISS原则
-4.3.2 功能
+4.3.1 KISS原则  
+4.3.2 功能  
 ####4.4 加入线程
-4.4.1 为什么加入线程
-4.4.2 在MFC中启动一个Worker线程
-4.4.3 最小化到通知区域
+4.4.1 为什么加入线程  
+4.4.2 在MFC中启动一个Worker线程  
+4.4.3 最小化到通知区域  
 ####4.5 查找
-4.5.1 通配符
-4.5.2 大小写、顺序
-4.5.3 用户隐私与系统路径
-4.5.4 实现
-4.5.5 路径输出
+4.5.1 通配符  
+4.5.2 大小写、顺序  
+4.5.3 用户隐私与系统路径  
+4.5.4 实现  
+4.5.5 路径输出  
 ###5 复杂度分析
-5.1 时间复杂度
-5.2 空间复杂度
+5.1 时间复杂度  
+5.2 空间复杂度  
 ###6 遇到的问题
-6.1 无法初始化USN文件
-6.2 unicode下wchar与char的问题
-6.3 \#ifdef位置的小问题
-6.4 参数传递
+6.1 无法初始化USN文件  
+6.2 unicode下wchar与char的问题  
+6.3 \#ifdef位置的小问题  
+6.4 参数传递  
 ###7 小优化
-7.1 读取速度
-7.2 打开文件方式
-7.3 进度条
+7.1 读取速度  
+7.2 打开文件方式  
+7.3 进度条  
 ###8 结束语
 参考文献  
 英文摘要  
