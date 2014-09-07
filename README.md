@@ -16,14 +16,13 @@ Considering my lack of experience on MFC and C++(I'm sorry about that), if you w
 Oh, The text was still *Chinese*  ^_^  
 
 ![Alt text](http://farm4.staticflickr.com/3762/10834695513_052494fb0d.jpg)  
-##useage  
-1. 'Save img as' -> *.jpg  
-2. .jpg -> .7z  
+
+##usage  
+1. Save image above as -> *.jpg  
+2. rename .jpg -> .7z  
 3. unzip *.7z -> (QSearch.exe config.ini)  
 
-I want rework it someday.  
-
-
+I want to refactor it in someday.  
 
 ---
 #Everything的原理猜想与实现
@@ -31,152 +30,85 @@ I want rework it someday.
 研究内容
 
 1.  读取NTFS的MFT
-
 2.  哈希表的构建
-
 3.  文件的系统路径
-
 4.  GUI与worker线程
-
 5.  多种查找方式
-
 6.  MFC界面
 
 研究计划
 
-4月初~4月中   确定研究方向
+4月初~4月中   确定研究方向  
+4月下~4月底   各知识点的准备，简单的test  
+5月初          程序的设计与开发的调试与运行  
+5月中~5月底   撰写毕业设计论文  
 
-4月下~4月底   各知识点的准备，简单的test
-
-5月初          程序的设计与开发的调试与运行
-
-5月中~5月底   撰写毕业设计论文
-
-特色与创新
+特色与创新  
 
 1.  CPU与内存占用在合理的范围内
-
 2.  软件稳定，提供不同的搜索选项
-
 3.  相对于windows的查找功能，定位文件速度超快
 
 
 ##目  录
-
-
 ###1 引言
-
-
 ###2 NTFS简要介绍
-
 2.1 NTFS
-
 2.2 现状
-
 ###3 准备
-
 3.1 设计思路
-
 3.2 什么是USN
-
 3.3 为什么快速
-
 3.4 环境
-
 ###4 程序的实现
-
 ####4.1 读取USN
-
 4.1.1 判断磁盘格式.
-
-
 4.1.2 获取驱动盘句柄
-
 4.1.3 初始化USN日志
-
 4.1.4 获取USN日志信息
-
 4.1.5 获取USN Journal 文件的信息
-
-4.1.6 删除USN 日志文件.
-
-
+4.1.6 删除USN 日志文件
 4.1.7 枚举所有文件的结果
-
 ####4.2 构建查找数据
-
 4.2.1 构建Vector
-
 4.2.2 构建哈希表.
-
 4.2.3 插入数据
-
 ####4.3 界面
-
 4.3.1 KISS原则
-
 4.3.2 功能
-
 ####4.4 加入线程
-
 4.4.1 为什么加入线程
-
 4.4.2 在MFC中启动一个Worker线程
-
 4.4.3 最小化到通知区域
-
 ####4.5 查找
-
 4.5.1 通配符
-
 4.5.2 大小写、顺序
-
 4.5.3 用户隐私与系统路径
-
 4.5.4 实现
-
 4.5.5 路径输出
-
 ###5 复杂度分析
-
 5.1 时间复杂度
-
 5.2 空间复杂度
-
 ###6 遇到的问题
-
-
 6.1 无法初始化USN文件
-
 6.2 unicode下wchar与char的问题
-
 6.3 \#ifdef位置的小问题
-
 6.4 参数传递
-
-
 ###7 小优化
-
 7.1 读取速度
-
 7.2 打开文件方式
-
 7.3 进度条
-
 ###8 结束语
-
-参考文献.
-
-英文摘要.
-
+参考文献  
+英文摘要  
 
 
  **NTFS磁盘文件的快速定位**
 
-**摘********要****：**本文介绍了在windows
+**摘要**：本文介绍了在windows
 NTFS磁盘格式下，枚举硬盘上所有文件以及文件夹的名称，以及利用C++的STL构建哈希表，还有MFC的GUI与worker线程，最终根据用户输入的关键字，实现像google关键字查找那样简单的搜索，然后瞬间返回所有匹配的文件/文件夹以及递归得到该文件/文件夹的系统路径。
 
-**关键词****：****NTFS,快速，关键词，查找，文件路径**
+**关键词**：**NTFS, 快速，关键词，查找，文件路径**
 
 1 引言 
 ======
@@ -261,14 +193,14 @@ PS：windows虽然不是“一切皆是文件”（Unix/Linux
 
 ```c++	
 GetVolumeInformation(
-      lpRootPathName: PChar;               // 磁盘驱动器代码字符串
-      lpVolumeNameBuffer: PChar;           // 磁盘驱动器卷标名称
-      nVolumeNameSize: DWORD;              // 磁盘驱动器卷标名称长度
-      lpVolumeSerialNumber: PDWORD;        // 磁盘驱动器卷标序列号
-      var lpMaximumComponentLength: DWORD; // 系统允许的最大文件名长度
-      var lpFileSystemFlags: DWORD;        // 文件系统标识
-      lpFileSystemNameBuffer: PChar;       // 格式类型
-      nFileSystemNameSize: DWORD           // 文件操作系统名称长度
+	lpRootPathName: PChar;               // 磁盘驱动器代码字符串
+	lpVolumeNameBuffer: PChar;           // 磁盘驱动器卷标名称
+	nVolumeNameSize: DWORD;              // 磁盘驱动器卷标名称长度
+	lpVolumeSerialNumber: PDWORD;        // 磁盘驱动器卷标序列号
+	var lpMaximumComponentLength: DWORD; // 系统允许的最大文件名长度
+    var lpFileSystemFlags: DWORD;        // 文件系统标识
+	lpFileSystemNameBuffer: PChar;       // 格式类型
+	nFileSystemNameSize: DWORD           // 文件操作系统名称长度
 );
 ```
 
@@ -280,13 +212,13 @@ GetVolumeInformation(
 
 ```c++	
 HANDLE hVol = CreateFile(
-       "盘符字符串",  // 必须如\.\C: (A-Z)的形式
-       GENERIC_READ | GENERIC_WRITE, // 可以为
-       FILE_SHARE_READ | FILE_SHARE_WRITE, // 必须包含有FILE_SHARE_WRITE 
-       NULL, // 这里不需要
-       OPEN_EXISTING, // 必须包含OPEN_EXISTING, CREATE_ALWAYS可能会导致错误
-       FILE_ATTRIBUTE_READONLY, // FILE_ATTRIBUTE_NORMAL可能会导致错误
-       NULL); // 这里不需要
+	"盘符字符串",  // 必须如\.\C: (A-Z)的形式
+	GENERIC_READ | GENERIC_WRITE, // 可以为
+	FILE_SHARE_READ | FILE_SHARE_WRITE, // 必须包含有FILE_SHARE_WRITE 
+	NULL, // 这里不需要
+	OPEN_EXISTING, // 必须包含OPEN_EXISTING, CREATE_ALWAYS可能会导致错误
+	FILE_ATTRIBUTE_READONLY, // FILE_ATTRIBUTE_NORMAL可能会导致错误
+	NULL); // 这里不需要
 ```
 
 需要注意的几点：
@@ -417,13 +349,13 @@ med.HighUsn = UsnInfo.NextUsn;
 
 ```c++
 DeviceIoControl(hVol, 
-     FSCTL_DELETE_USN_JOURNAL, 
-     &dujd, 
-     sizeof (dujd), 
-     NULL, 
-     0, 
-     &br, 
-     NULL)
+	FSCTL_DELETE_USN_JOURNAL, 
+	&dujd, 
+	sizeof (dujd), 
+	NULL, 
+	0, 
+	&br, 
+	NULL)
 ```
 
 
@@ -940,27 +872,15 @@ V1.0版本放出后，有同学反映后台统计文件时，没有提示，所�
 参考文献 
 ========
 
-[1] 硬件白皮书. NTFS文件系统规范[OL]. 百度文库，2011:  30.
-
-[2] Beiyu. NTFS文件系统若干技术研究[OL]. 2007: 7.
-
-[3] 婴儿. 互动百科[OL]. http://www.hudong.com/wiki/ntfs
-
-[4] Microsoft. MSDN Library[OL]. 2012 :
-
-[5] Stanley B.Lippman / Josée LaJoie / Barbara E.Moo. C++ Primer[M].
-Addison-Wesley Professional , 2006 : 10.3
-
-[6] Eric S. Raymond. 译者: 姜宏、何源、蔡晓骏. UNIX编程艺术[m].
-电子工业出版社, 2006:
-
-[7] 陈皓. 一些软件设计的原则[OL]. http://coolshell.cn/articles/4535.html
-
-[8] 孙鑫. VC++深入详解[m]. 电子工业, 2006
-
-[9] Jim Beveridge / Robert Wiener. Multithreading Applications in Win32
-: The Complete Guide to Threads[m]. Addison-Wesley Professional, 1996:
-223-243
+[1] 硬件白皮书. NTFS文件系统规范[OL]. 百度文库，2011:  30.  
+[2] Beiyu. NTFS文件系统若干技术研究[OL]. 2007: 7.  
+[3] 婴儿. 互动百科[OL]. http://www.hudong.com/wiki/ntfs  
+[4] Microsoft. MSDN Library[OL]. 2012 :  
+[5] Stanley B.Lippman / Josée LaJoie / Barbara E.Moo. C\+\+ Primer[M]. Addison-Wesley Professional , 2006 : 10.3  
+[6] Eric S. Raymond. 译者: 姜宏、何源、蔡晓骏. UNIX编程艺术[m]. 电子工业出版社, 2006:  
+[7] 陈皓. 一些软件设计的原则[OL]. http://coolshell.cn/articles/4535.html  
+[8] 孙鑫. VC++深入详解[m]. 电子工业, 2006    
+[9] Jim Beveridge / Robert Wiener. Multithreading Applications in Win32: The Complete Guide to Threads[m]. Addison-Wesley Professional, 1996: 223-243  
 
 英文摘要 
 ========
@@ -972,7 +892,7 @@ Lei Hao
  (School of Information & Computer, Anhui Agricultural University, Hefei
 230036)
 
-**Abstract****：**This article describes on windows NTFS disk, the
+**Abstract**：This article describes on windows NTFS disk, the
 enumeration all the names of the files and folders on the hard disk ,
 and to build a hash table by using C++ STL, MFC GUI and worker thread.
 Ultimately the user to enter keywords , as a simple search like google
@@ -981,57 +901,3 @@ and their system path.
 
 **Key words :** NTFS, fast , keywords , search, file path
  
-
-一、毕业论文（设计）的主要内容
-
- 
-
-​1. 读取NTFS的MFT
-
-​2. 哈希表的构建
-
-​3. 文件的系统路径
-
-​4. GUI与worker线程
-
-​5. 多种查找方式
-
-**6.**MFC界面****
-
-  
-
-[1] 硬件白皮书. NTFS文件系统规范[OL]. 百度文库，2011:  30.
-
-[2] Beiyu. NTFS文件系统若干技术研究[OL]. 2007: 7.
-
-[3] 婴儿. 互动百科[OL]. http://www.hudong.com/wiki/ntfs
-
-[4] Microsoft. MSDN Library[OL]. 2012 :
-
-[5] Stanley B.Lippman / Josée LaJoie / Barbara E.Moo. C++ Primer[M].
-Addison-Wesley Professional , 2006 : 10.3
-
-[6] Eric S. Raymond. 译者: 姜宏、何源、蔡晓骏. UNIX编程艺术[m].
-电子工业出版社, 2006:
-
-[7] 陈皓. 一些软件设计的原则[OL]. http://coolshell.cn/articles/4535.html
-
-[8] 孙鑫. VC++深入详解[m]. 电子工业, 2006
-
-[9] Jim Beveridge / Robert Wiener. Multithreading Applications in Win32
-: The Complete Guide to Threads[m]. Addison-Wesley Professional, 1996:
-223-243****
-
- 
-
-四、毕业论文（设计）进度计划
-
- 
-
-4月初~4月中	确定研究方向
-
-4月下~4月底	各知识点的准备，简单的test
-
-5月初	程序的设计与开发的调试与运行
-
-5月中~5月底	撰写毕业设计论文
