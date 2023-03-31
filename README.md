@@ -1,378 +1,361 @@
-Fake Everything
-=======
+# Graduation Project of 2012
 
+[中文版本](https://github.com/LeiHao0/Fake-Everything/blob/master/README_CN.md)
 
-I written it two years ago for that I was astonished by *Everything*'s search speed.  
+This was my graduation project in 2012. At that time, I was greatly shocked by the search speed of **Everything**, so I decided to implement one myself.
 
-------
-If you don't know what is *Everything*, just look at [here](http://en.wikipedia.org/wiki/Everything_(software))  
+If you don't know what **Everything** is, please refer to [this](<http://en.wikipedia.org/wiki/Everything_(software)>).
 
->Everything is a proprietary freeware Windows desktop search engine that can **rapidly** find files and folders by name on an NTFS volume.
+> Everything is a proprietary and free Windows desktop search engine that can **quickly** find files and folders on NTFS volumes by their names.
 
-Considering my lack of experience on MFC and C++ ( I'm sorry about that ), if you want to know how to get all files on your NTFS Volume and hash them, just read the **/QSearch/Volume.h**  
+I apologize for my almost zero experience with `MFC` and `C++` at that time.
 
-------
-Oh, The language in the picture was still Chinese  \^\_\^  
-
-![Alt text](http://farm4.staticflickr.com/3762/10834695513_052494fb0d.jpg)  
-
-## usage  
-1. Save image above as -> *.jpg  
-2. rename .jpg -> .7z  
-3. unzip *.7z -> (QSearch.exe config.ini)  
-
-I want to refactor it in someday.  
+If you want to know how to get all the files on an NTFS volume and hash them, please read `QSearch/Volume.h`.
 
 ---
-# Everything的原理猜想与实现
 
-研究内容
+Oh, the language in the image is still Chinese \^\_\^
 
-1.  读取NTFS的MFT
-2.  哈希表的构建
-3.  文件的系统路径
-4.  GUI与worker线程
-5.  多种查找方式
-6.  MFC界面
+![QSearch](http://farm4.staticflickr.com/3762/10834695513_052494fb0d.jpg)
 
-研究计划
+## Usage
 
-4月初~4月中   确定研究方向  
-4月下~4月底   各知识点的准备，简单的test  
-5月初          程序的设计与开发的调试与运行  
-5月中~5月底   撰写毕业设计论文  
+1. Save the image above as -> \*.jpg
+2. Rename .jpg to .7z
+3. Extract \*.7z -> (QSearch.exe config.ini)
 
-特色与创新  
+I hope to refactor it someday, but now I no longer use Windows.
 
-1.  CPU与内存占用在合理的范围内
-2.  软件稳定，提供不同的搜索选项
-3.  相对于windows的查找功能，定位文件速度超快
+---
 
+## Research Content
 
-## 目  录
-### 1 引言
-### 2 NTFS简要介绍
-2.1 NTFS  
-2.2 现状  
-### 3 准备
-3.1 设计思路  
-3.2 什么是USN  
-3.3 为什么快速  
-3.4 环境
-### 4 程序的实现
-#### 4.1 读取USN
-4.1.1 判断磁盘格式  
-4.1.2 获取驱动盘句柄  
-4.1.3 初始化USN日志  
-4.1.4 获取USN日志信息  
-4.1.5 获取USN Journal 文件的信息  
-4.1.6 删除USN 日志文件  
-4.1.7 枚举所有文件的结果  
-#### 4.2 构建查找数据
-4.2.1 构建Vector  
-4.2.2 构建哈希表  
-4.2.3 插入数据  
-#### 4.3 界面
-4.3.1 KISS原则  
-4.3.2 功能  
-#### 4.4 加入线程
-4.4.1 为什么加入线程  
-4.4.2 在MFC中启动一个Worker线程  
-4.4.3 最小化到通知区域  
-#### 4.5 查找
-4.5.1 通配符  
-4.5.2 大小写、顺序  
-4.5.3 用户隐私与系统路径  
-4.5.4 实现  
-4.5.5 路径输出  
-### 5 复杂度分析
-5.1 时间复杂度  
-5.2 空间复杂度  
-### 6 遇到的问题
-6.1 无法初始化USN文件  
-6.2 unicode下wchar与char的问题  
-6.3 \#ifdef位置的小问题  
-6.4 参数传递  
-### 7 小优化
-7.1 读取速度  
-7.2 打开文件方式  
-7.3 进度条  
-### 8 结束语
-参考文献  
-英文摘要  
+- Read NTFS MFT.
+- Building of hash table.
+- System path of files.
+- GUI and worker threads.
+- Various search methods.
+- MFC interface.
 
+## Research Plan
 
- **NTFS磁盘文件的快速定位**
+- Early April - Mid-April: Determine research direction.
+- Late April - End of April: Preparation of each knowledge point and simple tests.
+- Early May: Design of program and debugging and operation.
+- Mid-May - End of May: Writing of graduation thesis.
 
-**摘要**：本文介绍了在windows
-NTFS磁盘格式下，枚举硬盘上所有文件以及文件夹的名称，以及利用C++的STL构建哈希表，还有MFC的GUI与worker线程，最终根据用户输入的关键字，实现像google关键字查找那样简单的搜索，然后瞬间返回所有匹配的文件/文件夹以及递归得到该文件/文件夹的系统路径。
+## Features and Innovation
 
-**关键词**：**NTFS, 快速，关键词，查找，文件路径**
+- CPU and memory usage are within a reasonable range.
+- The software is stable, and provides different search options.
+- Compared to the Windows search function, it can locate files at a super-fast speed.
 
-1 引言 
-======
+---
 
-Windows的目录结构，在 NTFS 卷中，文件在目录中以
-B+树的形式排列，在目录中查找文件时按
-B+树的搜索方法先搜索根节点(从根目录开始)，然后按要找的文件名与根节点中的子节点对应的文件名相比较以确定在哪个子节点对应的存储区中搜索，然后以子节点为当前的根节点再搜索，直到找到文件为止。^[1]^
+# Quickly Locating NTFS Disk Files
 
-微软系统提供的搜索虽然可以搜索文本内容，但速度十分不理想。大多数情况下，我们只想知道文件存放在电脑的哪个文件夹下，而本程序很好的解决了这一点。
+**Abstract**
 
-2 NTFS简要介绍 
-==============
+> This article introduces how to enumerate the names of all files and folders on the hard disk under the windows NTFS disk format, and using the C++ STL to build a hash table, as well as MFC's GUI and worker threads, to achieve simple searching like searching for keywords in Google. Finally, it instantly returns all matching files/folders and recursively obtains the system path of the file/folder based on the user's input keyword.
 
-2.1 NTFS 
---------
+**Keywords**: **NTFS, fast, keyword, search, file path**
 
-NTFS(New Technology File System)是Windows
-NT以及之后的Windows的标准文件系统。NTFS取代了文件分配表（FAT）文件系统，为Microsoft的Windows系列操作系统提供文件系统。NTFS对FAT和HPFS（高性能文件系统）作了若干改进，例如，支持元数据，并且使用了高级数据结构，以便于改善性能、可靠性和磁盘空间利用率。^[2]^
+## 1 Introduction
 
-2.2 现状 
---------
+In Windows directory structure, files are arranged in B+ trees on NTFS volumes. When searching for files in directories, B+ tree search method is used to search the root node (starting from the root directory) first. Then, the file name to be searched is compared with the file name corresponding to the sub-node in the root node to determine which sub-node corresponding storage area to search, and then the sub-node is searched as the current root node until the file is found. [1]
 
-随着以NT为内核的Windows
-2000/XP的普及，很多个人用户开始用到了NTFS。NTFS也是以簇为单位来存储数据文件，但NTFS中簇的大小并不依赖于磁盘或分区大小。簇尺寸缩小不但降低了磁盘空间的浪费，还减少了产生磁盘碎片的可能。NTFS支持文件加密管理功能，可为用户提供更高层次的安全保证。^[3]^
+Although the search provided by the Microsoft system can search text content, the speed is not ideal.
 
-3 准备 
-======
+In most cases, we only want to know which folder the file is stored in the computer, and this program solves this problem very well.
 
-3.1 设计思路 
-------------
+## 2 Brief Introduction of NTFS
 
-读取磁盘全部文件名称作为数据，根据用户输入关键字，在数据中匹配。正确的连同路径一起返回给用户，以方便的打开文件。
+### 2.1 NTFS
 
-具体设计思路如图3-1所示。
+NTFS (New Technology File System) is the standard file system for Windows NT and later Windows.
 
-![](/img/QSearch/image002.png)
+NTFS replaces the File Allocation Table (FAT) file system and provides a file system for Microsoft's Windows series of operating systems.
 
-图3-1 设计思路
+NTFS makes several improvements to the FAT and HPFS (High Performance File System), such as supporting metadata and using advanced data structures to improve performance, reliability, and disk space utilization. [2]
 
-哈希表最大的优点，就是把数据的存储和查找消耗的时间大大降低，几乎可以看成是常数时间；而代价仅仅是消耗比较多的内存。然而在当前可利用内存越来越多的情况下，用空间换时间的做法是值得的。另外，编码比较容易也是它的特点之一。
+### 2.2 Status Quo
 
-3.2 什么是USN 
--------------
+With the popularity of Windows 2000/XP based on NT kernel, many personal users began to use NTFS.
 
-程序的重中之重是读取USN。
+NTFS also stores data files in clusters, but the size of clusters in NTFS does not depend on the size of disks or partitions.
 
-USN是Update Service Number Journal or Change
-Journal的缩写，对NTFS卷里所修改过的信息进行相关记录的功能，可以在分区中设置监视更改的文件和目录的数量，记录下监视对象修改时间和修改内容。
+Reducing the size of clusters not only reduces waste of disk space, but also reduces the possibility of generating disk fragments.
 
-当启用USN日志时，对于每一个NTFS卷，当有添加、删除和修改文件的信息时，NTFS都使用USN日志记录下来，并储存为
-USN_RECORD 的格式。
+NTFS supports file encryption management function, which can provide users with higher-level security guarantees. [3]
 
-3.3 为什么快速 
---------------
+## 3 Preparation
 
-USN日志相当于WORD目录，提供了索引，当然文章内容发生变化的时候，USN日志会记录下来何时做了修改，但它并不记录里面具体修改了什么东西，所以索引文件很小。而当你想查找文章具体的段落时，你就不用狂转鼠标滚轮，直接看目录即可，定位也只需要按住ctrl+鼠标单击。
+### 3.1 Design Idea
 
-同理，当你想查找某一篇文件时，可以直接通过查找USN日志（也就是建立的索引）就知道这个文件是否存在。
+Read all file names on the disk as data, and match them in the data based on the user's input keywords.
+Return the correct path together with the data to open the file conveniently.
 
-PS：windows虽然不是“一切皆是文件”（Unix/Linux
-的基本哲学之一），但文件夹也是以文件的形式存在，所以也可以通过USN来查找位置。
+The specific design idea is shown in Figure 3-1.
 
-3.4 环境 
---------
+![Figure 3-1 Design Idea](https://raw.githubusercontent.com/LeiHao0/BlogAssets/assets/QSearch_00.jpg)
 
-由于NTFS格式本来就是微软的专利，所以提供了一系列的API函数，供我们方便的访问。
+The biggest advantage of hash table is to greatly reduce the time and cost of storing and searching data. It can be seen as constant time, and the cost is only more memory consumption.
 
-作为古老但是经典的Visual C++ 6.0
-编程工具，但那时尚未有NTFS格式，所以选择了VC2005作为集成开发环境，而且只能运行在2000以后的windows系统。
+However, in the case of increasing available memory, the approach of using space to exchange time is worthwhile.
 
-4 程序的实现 
-============
+In addition, easy coding is one of its characteristics.
 
-4.1 读取USN 
------------
+### 3.2 What is USN
 
-下面的均为微软提供的API函数^[4]^，包含在<Winioctl.h>头文件中。
+The most important thing in the program is to read USN.
 
-### 4.1.1 判断磁盘格式 
+USN is the abbreviation of Update Service Number Journal or Change Journal, which records the modified information in the NTFS volume and can monitor the number of modified files and directories in the partition, and record the modification time and content of the monitored object.
 
-调用以下函数，找出为NTFS格式的磁盘
+When USN logging is enabled, for each NTFS volume, when there is information about adding, deleting and modifying files, NTFS records it using USN logging and stores it in the format of USN_RECORD.
 
-```c++	
+### 3.3 Why is it Fast
+
+The USN log is equivalent to the directory of WORD, providing an index. When the content of the article changes, the USN log will record when the modification was made, but it does not record what was modified specifically, so the index file is very small.
+
+Similarly, when you want to find a specific paragraph in the article, you don't need to scroll the mouse madly, just look at the directory, and positioning only needs to hold down ctrl+click the mouse.
+
+Similarly, when you want to find a specific file, you can directly check the USN log (that is, the index established) to know whether this file exists.
+
+PS: Although Windows is not "everything is a file" (one of the basic philosophies of Unix/Linux), folders also exist in the form of files, so you can also use USN to find the location.
+
+### 3.4 Environment
+
+Since the NTFS format is originally a Microsoft patent, it provides a series of API functions for us to conveniently access.
+
+As an old but classic programming tool, Visual C++ 6.0 was chosen. However, NTFS format was not available at that time, so VC2005 was chosen as the integrated development environment, which can only run on windows systems from 2000 onwards.
+
+## 4 Implementation of the Program
+
+### 4.1 Reading USN
+
+The following are API functions provided by Microsoft^[4]^, included in the header file `<Winioctl.h>`.
+
+#### 4.1.1 Checking Disk Format
+
+To find out which disk is in NTFS format, call the following function:
+
+```cpp
 GetVolumeInformation(
-	lpRootPathName: PChar;               // 磁盘驱动器代码字符串
-	lpVolumeNameBuffer: PChar;           // 磁盘驱动器卷标名称
-	nVolumeNameSize: DWORD;              // 磁盘驱动器卷标名称长度
-	lpVolumeSerialNumber: PDWORD;        // 磁盘驱动器卷标序列号
-	var lpMaximumComponentLength: DWORD; // 系统允许的最大文件名长度
-    var lpFileSystemFlags: DWORD;        // 文件系统标识
-	lpFileSystemNameBuffer: PChar;       // 格式类型
-	nFileSystemNameSize: DWORD           // 文件操作系统名称长度
+	lpRootPathName: PChar;               // String of the disk drive code
+	lpVolumeNameBuffer: PChar;           // Volume label name of the disk drive
+	nVolumeNameSize: DWORD;              // Length of the volume label name of the disk drive
+	lpVolumeSerialNumber: PDWORD;        // Volume label serial number of the disk drive
+	var lpMaximumComponentLength: DWORD; // Maximum file name length allowed by the system
+    var lpFileSystemFlags: DWORD;        // File system identifier
+	lpFileSystemNameBuffer: PChar;       // Format type
+	nFileSystemNameSize: DWORD           // Length of the file operating system name
 );
 ```
 
-其中的lpFileSystemNameBuffer，即为我们所要的，会返回"FAT32"，"NTFS"等字符串。
+The lpFileSystemNameBuffer returned is what we need and will return strings such as "FAT32" and "NTFS".
 
-然后用一个循环，统计A-Z为NTFS格式的盘符，然后初始化
+Then, a loop is used to count the NTFS-formatted drive letters A-Z, and then initialize.
 
-### 4.1.2 获取驱动盘句柄 
+#### 4.1.2 Getting Drive Handle
 
-```c++	
+```cpp
 HANDLE hVol = CreateFile(
-	"盘符字符串",  // 必须如\.\C: (A-Z)的形式
-	GENERIC_READ | GENERIC_WRITE, // 可以为
-	FILE_SHARE_READ | FILE_SHARE_WRITE, // 必须包含有FILE_SHARE_WRITE 
-	NULL, // 这里不需要
-	OPEN_EXISTING, // 必须包含OPEN_EXISTING, CREATE_ALWAYS可能会导致错误
-	FILE_ATTRIBUTE_READONLY, // FILE_ATTRIBUTE_NORMAL可能会导致错误
-	NULL); // 这里不需要
+	"drive letter string",  // must be in the form of \.\C: (A-Z)
+	GENERIC_READ | GENERIC_WRITE, // can be
+	FILE_SHARE_READ | FILE_SHARE_WRITE, // must include FILE_SHARE_WRITE
 ```
 
-需要注意的几点：
+```
+## 4.1 Get the USN Journal Records
 
-1）CreateFile返回一个句柄，下面需要用到；
+### 4.1.1 USN Journal Data Structure
 
-2）由于盘符必须为\.\C:的形式，在c++语言中反斜杠"//"才代表 "/"；
+The `USN_RECORD_V2` structure is used to store the record of each change that occurs. Here is the structure:
 
-3）需要管理员权限（vista，win7中会弹出UAC）
+```cpp
+typedef struct {
+    DWORD    RecordLength;
+    WORD    MajorVersion;
+    WORD    MinorVersion;
+    DWORDLONG FileReferenceNumber;
+    DWORDLONG ParentFileReferenceNumber;
+    USN      Usn;
+    LARGE_INTEGER TimeStamp;
+    DWORD    Reason;
+    DWORD    SourceInfo;
+    DWORD    SecurityId;
+    FileAttributes FileAttributes;
+    WORD     FileNameLength;
+    WORD     FileNameOffset;
+    WCHAR    FileName[1];
+} USN_RECORD_V2, *PUSN_RECORD_V2;
+```
 
-如果hVol !=
-INVALID_HANDLE_VALUE，就代表获取句柄成功，可以继续下一步了。
+### 4.1.2 Get the Volume Handle
 
-### 4.1.3 初始化USN日志 
+To get the volume handle, use the `CreateFile` function with the `\\.\volume path` format.
 
-用FSCTL_CREATE_USN_JOURNAL作为DeviceIoControl的控制代码。
+```cpp
+CreateFileW(L"\\\\.\\C:",
+	NULL,
+	FILE_SHARE_READ | FILE_SHARE_WRITE,
+	NULL,
+	OPEN_EXISTING,
+	FILE_ATTRIBUTE_READONLY,
+	NULL);
+```
 
-Cujd是一个指向输入缓冲区的指针，指向CREATE_USN_JOURNAL_DATA结构体。
+A few things to note:
 
-4.1.4 获取USN日志信息 
----------------------
+1. `CreateFile` returns a handle that will be used later in the code;
+2. The drive letter must be in the `\\.\volume` format. In C++ language, the backslash `\` is used as an escape character, so they need to be doubled (`\\`);
+3. Administrator rights are required (UAC may pop up in Vista, Win7).
 
-用FSCTL_QUERY_USN_JOURNAL作为DeviceIoControl的控制代码。
+If `hVol != INVALID_HANDLE_VALUE`, the handle is obtained successfully and the next step can be taken.
 
-lpOutBuffer返回一个 USN_JOURNAL_DATA，是一个结构体
+### 4.1.3 Initialize the USN Journal
 
-```c++
+Use `FSCTL_CREATE_USN_JOURNAL` as the control code for `DeviceIoControl`.
+
+`Cujd` is a pointer to an input buffer that points to the `CREATE_USN_JOURNAL_DATA` structure.
+
+### 4.1.4 Retrieve Information from the USN Journal
+
+Use `FSCTL_QUERY_USN_JOURNAL` as the control code for `DeviceIoControl`.
+
+`lpOutBuffer` will return a `USN_JOURNAL_DATA` structure:
+
+```cpp
 typedef struct {
     DWORDLONG UsnJournalID;
-    USN       FirstUsn;
-    USN       NextUsn;
-    USN       LowestValidUsn;
-    USN       MaxUsn;
+    USN       FirstUsn;
+    USN       NextUsn;
+    USN       LowestValidUsn;
+    USN       MaxUsn;
     DWORDLONG MaximumSize;
     DWORDLONG AllocationDelta;
 } USN_JOURNAL_DATA, *PUSN_JOURNAL_DATA;
 ```
 
-UsnJournalID ，FirstUsn ，NextUsn下一步会用到。
+`UsnJournalID`, `FirstUsn`, and `NextUsn` will be used in the next step.
 
-### 4.1.5 获取USN Journal 文件的信息 
+#### 4.1.5 Obtaining information about USN Journal files
 
-由于USN是以 USN_RECORD 形式储存的，其结构为：
+Since `USN` is stored in the form of `USN_RECORD`, its structure is as follows:
 
-```c++
+```cpp
 typedef struct {
-	DWORD RecordLength; // 记录长度
-	WORD MajorVersion; // 主版本
-	WORD MinorVersion; // 次版本
-	DWORDLONG FileReferenceNumber; // 文件引用数
-	DWORDLONG ParentFileReferenceNumber; // 父目录引用数
+	DWORD RecordLength; // length of record
+	WORD MajorVersion; // major version
+	WORD MinorVersion; // minor version
+	DWORDLONG FileReferenceNumber; // file reference number
+	DWORDLONG ParentFileReferenceNumber; // parent directory reference number
 	USN Usn; // USN
-	LARGE_INTEGER TimeStamp; // 时间戳
-	DWORD Reason; // 原因
-	DWORD SourceInfo; // 源信息
-	DWORD SecurityId; // 安全
-	ID DWORD FileAttributes; // 文件属性
-	WORD FileNameLength; // 文件长度
-	WORD FileNameOffset; // 文件名偏移
+	LARGE_INTEGER TimeStamp; // timestamp
+	DWORD Reason; // reason
+	DWORD SourceInfo; // source information
+	DWORD SecurityId; // security
+	ID DWORD FileAttributes; // file attributes
+	WORD FileNameLength; // length of file name
+	WORD FileNameOffset; // file name offset
 	DWORD ExtraInfo1;
 	DWORD ExtraInfo2; DWORD ExtraInfo3; // Hypothetically added in version 2.3
-	WCHAR FileName[1]; // 文件名第一位的指针
-} USN_RECORD, *PUSN_RECORD;
+	WCHAR FileName[1]; // pointer to the first character of the file name
+} USN_RECORD, * PUSN_RECORD;
 ```
 
-注意里面的FileReferenceNumber, ParentFileReferenceNumber,
-FileNameLength, FileName。
+Note the variables `FileReferenceNumber`, `ParentFileReferenceNumber`, `FileNameLength`, `FileName`. 
 
-这几个变量至关重要。
+These variables are crucial.
 
-DeviceIoControl() 与 FSCTL_ENUM_USN_DATA 配合。
+`DeviceIoControl()` and `FSCTL_ENUM_USN_DATA` work together:
 
-**
-```c++
-while (0!=DeviceIoControl(hVol, 
-	 	FSCTL_ENUM_USN_DATA, 
-	 	&med, 
-	 	sizeof (med), 
-	 	Buffer, 
-	 	BUF_LEN, 
-	 	&usnDataSize, 
-	 	NULL)) { 
+```C++
+while (0! = DeviceIoControl(hVol,
+	FSCTL_ENUM_USN_DATA,
+	&med,
+	sizeof(med),
+	Buffer,
+```
 
-	 	DWORD dwRetBytes = usnDataSize - sizeof (USN); 
-	 	// 找到第一个 USN 记录 
-	 	UsnRecord = (PUSN_RECORD)(((PCHAR)Buffer)+sizeof (USN)); 
+```
+BUF_LEN,
+&usnDataSize,
+NULL)) {
 
-	 	while (dwRetBytes>0){ 
+DWORD dwRetBytes = usnDataSize - sizeof(USN);
+// Find the first USN record
+UsnRecord = (PUSN_RECORD)(((PCHAR)Buffer) + sizeof(USN));
 
-	 		// 获取到的信息  
-	 		CString CfileName(UsnRecord->FileName, UsnRecord->FileNameLength/2);
-	 		pfrnName.filename = nameCur.filename = CfileName;
-	 		pfrnName.pfrn = nameCur.pfrn = UsnRecord->ParentFileReferenceNumber;
+while (dwRetBytes > 0) {
 
-	 		// Vector
-	 		VecNameCur.push_back(nameCur);
+    // Information obtained
+    CString CfileName(UsnRecord->FileName, UsnRecord->FileNameLength / 2);
+    pfrnName.filename = nameCur.filename = CfileName;
+    pfrnName.pfrn = nameCur.pfrn = UsnRecord->ParentFileReferenceNumber;
 
-	 		// 构建hash...
-	 		frnPfrnNameMap[UsnRecord->FileReferenceNumber] = pfrnName;
-	 		// 获取下一个记录 
-	 		DWORD recordLen = UsnRecord->RecordLength; 
-	 		dwRetBytes -= recordLen; 
-	 		UsnRecord = (PUSN_RECORD)(((PCHAR)UsnRecord)+recordLen); 
+    // Vector
+    VecNameCur.push_back(nameCur);
 
-	 	}
-	 	// 获取下一页数据
-	 	med.StartFileReferenceNumber = \*(USN \*)&Buffer;
+    // Build hash...
+    frnPfrnNameMap[UsnRecord->FileReferenceNumber] = pfrnName;
+    // Get the next record
+    DWORD recordLen = UsnRecord->RecordLength;
+    dwRetBytes -= recordLen;
+    UsnRecord = (PUSN_RECORD)(((PCHAR)UsnRecord) + recordLen);
+
 }
+// Get the next page of data
+med.StartFileReferenceNumber = *((USN *)&Buffer);
 ```
-**
-其中，Med为：
 
-MFT_ENUM_DATA med; 
+Here, `Med` is:
 
-med.StartFileReferenceNumber = 0; 
+```C++
+MFT_ENUM_DATA med;
+
+med.StartFileReferenceNumber = 0;
 
 med.LowUsn = 0;//UsnInfo.FirstUsn;
-这里经测试发现，如果用FirstUsn有时候不正确，导致获取到不完整的数据，还是直接写0好. 
-
-med.HighUsn = UsnInfo.NextUsn;
-
-在这个循环中，把每次获取到的文件名，分别插入vector与哈希表中（下文有介绍）。
-
- 
-
-### 4.1.6 删除USN 日志文件 
+```
 
 
-```c++
-DeviceIoControl(hVol, 
-	FSCTL_DELETE_USN_JOURNAL, 
-	&dujd, 
-	sizeof (dujd), 
-	NULL, 
-	0, 
-	&br, 
+Here it was found by testing that sometimes using `FirstUsn` is incorrect, resulting in incomplete data being retrieved, so it is better to directly write 0.
+
+`med.HighUsn = UsnInfo.NextUsn;`
+
+In this loop, the file names obtained each time are inserted into the vector and hash table separately (as described below).
+
+#### 4.1.6 Delete USN log file
+
+```C++
+DeviceIoControl(hVol,
+	FSCTL_DELETE_USN_JOURNAL,
+	&dujd,
+	sizeof (dujd),
+	NULL,
+	0,
+	&br,
 	NULL)
 ```
 
+#### 4.1.7 Enumeration of all files
 
+Save the data first as a text file named Allfile.txt for analysis, as shown in Figure 4-1.
 
-### 4.1.7 枚举所有文件的结果 
+![Figure 4-1 Allfile.txt](https://raw.githubusercontent.com/LeiHao0/BlogAssets/assets/QSearch_01.jpg)
 
-将数据先保存为Allfile.txt文本，以便用来分析，如图4-1。
+![Figure 4-1 Allfile.txt](https://raw.githubusercontent.com/LeiHao0/BlogAssets/assets/QSearch_02.jpg)
 
-![](/img/QSearch/image004.png)
+Using the D drive on my own computer as a test, all files were enumerated.
 
-![](/img/QSearch/image006.png)
+As shown in the figure, there are about 400,000 files, a total of over 1 million records, and the file size is about 20MB.
 
-图4-1 Allfile.txt
+For the amount of memory occupied by the program later, there is a rough estimate of about 50MB, even with only 1GB of memory.
 
-用了自己电脑上的D盘作为测试，枚举出了全部的文件。如图，大约有40W文件，一共有100多W条数据，文件大小约20MB。这对于之后的程序占用内存的数量，有了个模糊的估计，大约在50M左右。对于即使只有1G的内存，也在合理范围内。有了原始数据，分析如下：
+With the raw data, the analysis is as follows:
 
-比如Linux编程实践.isz这个文件，其系统路径为："D:\Ghost\Linux\Linux编程实践.isz"，在看文件中的结果：
-
+For example, the file Linux programming practice.isz has the system path: `D:\Ghost\Linux\Linux programming practice.isz`. Looking at the results in the file:
 
 ```
 D:\
@@ -389,69 +372,71 @@ Linux
 Frn: e0000000010d2
 Pfrn: 20000000000fd
 ……
-……
-Linux编程实践.isz
-Frn: 190000000003b2
-Pfrn: e0000000010d2
-可以得出：
-Linux编程实践.isz->Pfrn == Linux->Frn
-Linux->Pfrn == Ghost->Frn
-Ghost->Pfrn == D:\ -> Frn
-D:\ -> Pfrn 停止
 ```
 
-所以用一个递归函数（直接或间接地调用自身的函数），便可得到完整的路径。
 
-4.2 构建查找数据 
-----------------
+......
+Linux Programming Practice.isz
+Frn: 190000000003b2
+Pfrn: e0000000010d2
+We can get:
+Linux Programming Practice.isz->Pfrn == Linux->Frn
+Linux->Pfrn == Ghost->Frn
+Ghost->Pfrn == D:\ -> Frn
+D:\ -> Pfrn Stop
+```
 
-### 4.2.1 构建Vector 
+So a recursive function (a function that calls itself, either directly or indirectly) can be used to obtain the complete path.
 
+### 4.2 Building Lookup Data
 
-```c++
+#### 4.2.1 Building Vector
+
+```cpp
 typedef struct _name_cur {
     CString filename;
     DWORDLONG pfrn;
-}Name_Cur;
+} Name_Cur;
 ```
 
-Vector：
+Vector:
 
-一种顺序容器。vector 中的元素通过其位置下标访问。可通过调用push_back 或
-insert 函数在 vector 中添加元素。在 vector
-中添加元素可能会导致重新为容器分配内存空间，也可能会使所有的迭代器失效。在
-vector
-容器中间添加（或删除）元素将使所有指向插入（或删除）点后面的元素的迭代器失效。
+An order container.
 
-用Vector来存放<文件名，当前目录>，由于模糊查找的要求，二分查找之类的快速查找方式，在这里反而不适用，而Vector从begin到end的线性遍历方式，反而比较符合这一要求。
+Elements in the vector are accessed by their positional index.
 
-### 4.2.2 构建哈希表 
+Elements can be added to the vector by calling the push_back or insert function.
 
+Adding elements to the vector may require reallocating memory for the container, and may also invalidate all iterators.
 
-```c++
+Adding (or deleting) elements in the middle of the vector will invalidate all iterators to elements after the insertion (or deletion) point.
+
+Using a Vector to store <filename, current directory> is not suitable for quick lookup methods such as binary search due to the requirements of fuzzy lookup. Instead, the linear traversal method of Vector from begin to end is more suitable for this requirement.
+
+#### 4.2.2 Building Hashtable
+
+```C++
 typedef struct pfrn_name {
     DWORDLONG pfrn;
     CString filename;
-}Pfrn_Name;
+} Pfrn_Name;
 
 typedef map<DWORDLONG, Pfrn_Name> Frn_Pfrn_Name_Map;
 ```
 
-这里利用STL提供的map库函数^[5]^，map 是键－值对的集合。map
-类型通常可理解为关联数组（associative
-array）：可使用键作为下标来获取一个值，正如内置数组类型一样。而关联的本质在于元素的值与某个特定的键相关联，而并非通过元素在数组中的位置来获取。
+Here we use STL's map library function^[5]^, map is a collection of key-value pairs.
 
-一是，考虑到若是自己实现哈希函数，可能有若干bug，影响进度，不如使用STL提供的稳定的map来实现。
+The map type is often understood as an associative array: a value can be obtained using a key as an index, just like a built-in array type.
 
-二是，“Don't Reinvent the Wheel”不要重复发明轮子^[6]^
-，如Google的Android，是Google没有能力单独开发一个系统内核，才用了很成熟的Linux内核？我想也以Google这样的世界巨头公司，是不可能没有这个能力的，而是尊崇了不要重复发明轮子的原则。
+The essence of association is that the value of an element is associated with a specific key, not obtained by the position of the element in the array.
 
-### 4.2.3 插入数据： 
+1. Considering that if one were to implement their own hash function, there might be several bugs that would affect the progress, it is better to use the stable map provided by STL instead to implement.
+2. "Don't Reinvent the Wheel", don't reinvent what has already been invented^[6]^
+   1. For example, Google's Android system uses the well-established Linux kernel because Google may not have the ability to develop a system kernel on its own. I believe that as a world-class giant company like Google, it is not impossible for them to possess this capability, but rather this is a demonstration of the principle to not reinvent a wheel that has already been invented.
 
-这里就用到了在4.1.5节，获取USN Journal
-文件的信息那个循环中，把每次获取到的USN_RECORD信息，里面的filename,
-pfrn, frn分别插入到vector与哈希表中。
+#### 4.2.3 Inserting Data:
 
+This is where we use the loop in section 4.1.5 to obtain information from the USN Journal file, and insert the `filename`, `pfrn`, and `frn` obtained from the `USN_RECORD` information into both the vector and hash table.
 
 ```
 pfrnName.filename = nameCur.filename = CfileName;
@@ -460,239 +445,227 @@ VecNameCur.push_back(nameCur);
 frnPfrnNameMap[UsnRecord->FileReferenceNumber] = pfrnName;
 ```
 
+### 4.3 User Interface
 
-4.3 界面 
---------
+When starting a project, VC2005 provides command-line (console) projects and GUI projects.
 
-开始一个项目时，VC2005提供了命令行（控制台）项目，以及GUI项目。命令行编程非常的方便、快捷、实用，而且相对的简单。在控制台能满足的情况下，用界面是没有必要的。或者有时目标平台不能够显示图形用户界面。不过，
-GUI有着更明显的优势，比如菜单系统以及更好的交互性。另外，在菜单选择，字段之间移动数据录入过程中，
-鼠标是非常有用的，GUI是必经之路。所以，写程序时，先在console下试验了些中间数据，没问题结束后，在转向GUI界面。
+Command-line programming is very convenient, fast, practical, and relatively simple. 
+When the console can meet the requirements, there is no need for a GUI. 
 
-MFC：Microsoft Foundation Classes，也就是一般人简称的 MFC
-，是微软公司对于“降低 Wi ndows 
-程序设计之厌烦无聊及困难度”而做出的最大贡献。MFC
-使得对话框的产生极为简单。它也实现出消息派送系统（message
-dispatching），处理 WPARAM   和 LP ARAM  的易犯错误。MFC 
-甚至是引诱某些人进入 C++   的原动力。
-本程序用微软提供的MFC实现，如图4-2：
+Or sometimes the target platform cannot display a graphical user interface. 
 
-![](/img/QSearch/image008.jpg)
+However, GUI has more obvious advantages, such as menu system and better interactivity. 
 
-**图****4-2 MFC界面**
+In addition, the mouse is very useful during menu selection, field data movement and input process, and GUI is the only way to go.
 
-### 4.3.1 KISS原则 
+Therefore, when writing a program, try out intermediate data on the console first. When there are no problems, switch to the GUI interface.
 
-KISS原则就是"Keep It Sample And
-Stupid"的缩写，简洁和易于操作是设计的最重要的原则。
+MFC: Microsoft Foundation Classes, also known as MFC for short, is Microsoft's biggest contribution to "reducing the tediousness, boredom, and difficulty of Windows program design".
 
-KISS原则在设计上可能最被推崇的，在家装设计，界面设计
-，操作设计上，复杂的东西越来越被众人所BS了，而简单的东西越来越被人所认可，比如这些UI的设计和我们中国网页是负面的例子。“宜家”（IKEA）简约、效率的家居设计、生产思路；“微软”（Microsoft）“所见即所得”的理念；“谷歌”（Google)简约、直接的商业风格，无一例外的遵循了“kiss”原则。^[7]^
+MFC makes the creation of dialog boxes extremely simple.
 
-### 4.3.2 功能 
+It also implements a message dispatching system, which handles common errors relating to WPARAM and LPARAM.
 
-在kiss原则下，尽可能做到简洁。添加Editbox button listbox
-menu^[8]^这几个控件，分别实现功能为：
+MFC is even the driving force behind some people learning C++.
 
-Editbox ：
+This program is implemented with MFC provided by Microsoft as shown in Figure 4-2:
 
-得到用户输入的需要查找的字符串
+![Figure 4-2 MFC Interface](https://raw.githubusercontent.com/LeiHao0/BlogAssets/assets/QSearch_04.jpg)
 
-Button ：
+#### 4.3.1 KISS Principle
 
-​1) 得到EditBox中的字符串
+The KISS principle stands for "Keep It Simple and Stupid", emphasizing the importance of simplicity and ease of operation in design.
 
-​2) 字符太短弹出提示
+The KISS principle is possibly the most esteemed principle in design, from home decor and interface design to operation design. Complex things are increasingly being frowned upon, while simple things are being appreciated more and more. Examples of negative UI design include Chinese websites and complex interface designs.
 
-​3) 加上放大镜图片，功能一目了然
+"IKEA" emphasizes simple and efficient home design and manufacturing concepts; "Microsoft" emphasizes a "what you see is what you get" philosophy; "Google" has a simple and straightforward business style that adheres to the KISS principle without exception. ^[7]^
 
-Listbox ：
+#### 4.3.2 Functionality
 
-​1) 显示匹配的文件名与路径，双击可打开文件
+Under the KISS principle, simplicity should be emphasized as much as possible.
 
-​2) 由于路径可能比较长，加入水平滚动条
+Adding Editbox, button, listbox, and menu controls, the functionality is as follows:
 
-​3) 双击Listbox中的结果文件路径，打开被双击选中的文件
+- Editbox
+  - Obtain the user input string to be searched for
+- Button
+  1. Obtain the string from the EditBox
+  2. Display a prompt if the string is too short
+  3. Add a magnifying glass image for obvious functionality
+- Listbox
+  1. Display the matching filenames and their paths, and double-clicking opens the file
+  2. Due to the length of the path, add a horizontal scrollbar
+  3. Double-clicking on a result file path in the Listbox opens the selected file
+- Menu
+  - A menu that allows case-sensitive/insensitive searching and searching in either a forward or backward order.
 
-Menu：菜单，可以选择大小写、查找顺序
+### 4.4 Adding Threads
 
-4.4 加入线程 
-------------
+#### 4.4.1 Why Add Threads?
 
-### 4.4.1 为什么加入线程 
+The benefits of threads: threads are inexpensive.
 
-线程的好处：线程价廉。线程启动比较快，退出比较快，对系统资源的冲击也比较小。
+Threads start and exit quickly and have a minimal impact on system resources.
 
-另外考虑到：
+Taking these factors into consideration:
 
-​1) 由于io的限制，对同一块硬盘，用多线程同时读取MFT，意义不是很大
+1. Due to the limitations of IO, multiple threads reading MFT from the same hard drive simultaneously may not be very meaningful. 
+2. Accessing MFT from different partitions on the same hard drive may actually affect speed, but it can greatly improve efficiency when accessing multiple hard drives. However, computer users with multiple hard drives may have formed a RAID array. The best solution is to read the disks in sequence from A-Z. 
+3. Initially, when creating MFC, executing in order resulted in the interface not being displayed until all data was calculated, which could easily make users lose patience. 
+4. The ultimate solution is to have one UI thread and one worker thread to calculate data in the background. 
 
-磁盘访问位于同一硬盘不同分区的MFT，有可能反而会影响速度。而对于多块硬盘的电脑，应该可大大提高效率。但是多块硬盘的用户，可能组成了RAID磁盘列阵。最好的解决方案应该就是A-Z盘顺序读取。
+#### 4.4.2 Starting a Worker Thread in MFC
 
-​2)
-最初创建MFC时，顺序执行，结果导致界面在全部数据统计结束后才能显示，在此过程中，用户很容易失去耐心。
+MFC has supported multithreading for a long time. 
 
-3)最终决定一个UI线程，一个worker线程后台统计数据。
+In a typical MFC program, multithreading support is hidden behind a very impressive amount of work. 
 
-4.4.2 在MFC中启动一个Worker线程 
--------------------------------
+MFC even tries to reinforce certain Win32 concepts related to multithreading. 
 
-MFC早加入了对多线程的支持。在一个典型的 MFC  
-程序中，多线程的支持隐藏在一大段非常惊人的工作之后。MFC 
-甚至企图强化某些与多线程有关的 Win32观念。
+Both the GUI and worker threads are started using `AfxBeginThread()`. However, MFC uses the overloading feature of C++ functions to provide two different declarations for this function. The compiler automatically selects the correct one based on the parameters you provide.^[9]^ 
 
-GUI与worker线程都是以AfxBeginThread()启动，但是MFC利用C++函数的overloading性质，对该函数提供了两种不同的声明。编译器会根据你所提供的参数，自动选择正确的一个来用。^[9]^
+Use `AfxBeginThread` to start a thread. 
 
-用AfxBeginThread来启动线程。
-pParam任意４字节数值，用来传给新线程。它可以是个整数，或指针，或单纯只是个0。
+`pParam` is an arbitrary 4-byte value that is passed to the new thread. 
 
-这里只用到前面两个参数即可，对象中的线程函数，以及该对象指针
+It can be an integer, a pointer, or simply 0. 
 
-在任务管理器中可以看到两个线程，如图4-3所示
+Only the first two parameters are used here, the thread function in the object and a pointer to the object. 
 
-![](/img/QSearch/image010.png)
+Two threads can be seen in the task manager, as shown in Figure 4-3. 
 
-图4-3 任务管理器显示线程数量
+![Figure 4-3 Displaying the Number of Threads in the Task Manager](https://raw.githubusercontent.com/LeiHao0/BlogAssets/assets/QSearch_03.jpg)
 
-当worker线程完成任务后，便会自动结束，回复为一个线程。
+When the worker thread completes its task, it will automatically terminate and return to a single thread. 
 
-### 4.4.3 最小化到通知区域 
+#### 4.4.3 Minimizing to the Notification Area
 
-现在越来越多的程序点击右上角的关闭，实际为最小化到托盘图标。真正退出程序需要从托盘图标上右键退出。
+Nowadays, more and more programs click on the close button in the upper right corner to minimize to the tray icon. To truly exit the program, you need to right-click on the tray icon and select "exit". 
 
-实现最小化而不退出程序，可以方便的查找文件。
+Minimizing to the system tray while keeping the program running can make it easier to find files. 
 
-1)最小化在任务栏显示。
+- Minimize to the taskbar. 
+- Clicking close will exit to the system tray and will not be displayed on the taskbar. Double-click to restore the window display.
 
-2)点击关闭，退出到托盘图标，而不在任务栏显示；双击回复显示窗口。
+- Add menu to tray icon.
 
-3)托盘图标添加菜单。
+### 4.5 Search
 
-4.5 查找 
---------
+#### 4.5.1 Wildcards
 
-### 4.5.1 通配符 
+In actual use, file names cannot always be remembered clearly, for example, test.2012-5-14.txt, often users input "test.txt", so fuzzy search is needed.
 
-实际应用中，文件名不可能清楚的记得，比如test.2012-5-14.txt，经常是输入“test
-.txt”，所以需要模糊查找。由于在console下，以<filename,
-pfrn>创建哈希表，如果要实现模糊查找，哈希表变没有必要，可以直接利用容器vector。
+As creating a hash table with <filename, pfrn> under console, if fuzzy search is needed, the hash table is unnecessary, and vector container can be directly utilized.
 
-根据实际情况，不需要很严格的通配符，"\* ？"
-即可解决大部分查找问题，加上用户一般可能不知道通配符的使用，更不用说正则表达式。所以以“空格”
-代替 “\* ？”，实现 百度
-google那样以空格隔开关键字的查找方式，是个很好的解决办法。****
+Considering the actual situation, strict wildcards are unnecessary, '* ?' can solve most of the search problems, and users generally may not know how to use wildcards, let alone regular expressions.
 
-### 4.5.2 大小写、顺序 
+Therefore, replace '* ?' with "space" to implement the search method of separating keywords with spaces like that of Baidu and Google, which is a good solution.
 
-一般会有以下两种情况：
+#### 4.5.2 Case sensitivity and order
 
-1)    用户可能记不清文件名称或者路径的大小写
+There are generally three situations:
 
-2)    有时文件过多，可能需要严格的大小写，以过滤正确文件
+1. Users may not remember the case of file names or paths.
+2. Sometimes there are too many files, and strict case sensitivity is needed to filter the correct files.
+3. Users may not remember the order of keywords.
 
-3)    记不清关键字的顺序
+Therefore, the following two options are provided:
 
-所以提供下面两个选项：
+1. Strict case sensitivity.
+2. No order.
 
-​1) 严格大小写
+According to the general situation, the default search method is case-insensitive and has order.
 
-​2) 无顺序
+#### 4.5.3 User privacy and system paths
 
- 
+1. Considering that some folders are used to store users' private files.
+2. System folders, such as 'c:\windows\*', are generally not necessary for users and searching for them will only increase unnecessary files, adding to the burden on the system.
 
-根据普遍情况，默认为：大小写不敏感，有顺序的查找方式
+Therefore, it is necessary to add an option to exclude folders, as shown in Figure 4-4.
 
-### 4.5.3 用户隐私与系统路径 
+![Figure 4-4 Exclude folders interface](https://raw.githubusercontent.com/LeiHao0/BlogAssets/assets/QSearch_06.jpg)
 
-1）考虑到有些文件夹被用来存放用户私密文件。
+The corresponding function is:
 
-2）系统文件夹，例如：“c:\windows\*\*\*”一般用户是用不到的，同等搜索只会增加不必要的文件，拖重系统负担。
-
-所以有必要添加一个排除文件夹选项，如图4-4
-
-![](/img/QSearch/image012.png)
-
- 
-
-图4-4 排除文件夹界面
-
-相应的函数为：
-
-
-```c++
-bool isIgnore( vector<string>\* pignorelist ) {
+```cpp
+bool isIgnore( vector<string>* pignorelist ) {
 	string tmp = CW2A(path);
 	for ( vector<string>::iterator it = pignorelist->begin();
 		it != pignorelist->end(); ++it ) {
 			size_t i = it->length();
-			if ( !tmp.compare(0, i, \*it,0, i) ) {
-				return true;
-			}
+
+```cpp
+bool cmpStrStr::cmpStrFilename(CString str, CString filename) {
+	CString strtmp;
+	CString filenametmp;
+
+	if ( !infilename(strtmp, filenametmp) ) {
+		return false;
 	}
-	return false;
- }
-```
 
-### 4.5.4 实现 
-
-新建匹配字符串类
-
-
-```c++
-class cmpStrStr {
-public:
-	cmpStrStr(bool uplow, bool inorder) {
-		this->uplow = uplow;
-		this->isOrder = inorder;
+	if ( uplow ) {
+		strtmp.MakeLower();
+		filenametmp.MakeLower();
 	}
-	~cmpStrStr() {};
 
-	bool cmpStrFilename(CString str, CString filename);
-	bool infilename(CString &strtmp, CString &filenametmp);
-
-private:
-	bool uplow;
-	bool isOrder;
-};
-```
-
-遍历**4.2.1**中的VecNameCur，通过cmpStrFilename匹配函数，得到符合的
-filename
-
-```c++
-for ( vector<Name_Cur>::const_iterator cit = VecNameCur.begin();
-	cit != VecNameCur.end(); ++cit) {
-
-	if ( cmpstrstr.cmpStrFilename(str, cit->filename) ) {
-		path.Empty();
-		// 还原 路径
-
-		// vol:\  path \ cit->filename
-		getPath(cit->pfrn, path);
-		path += cit->filename;
-		// path已是全路径   
-
-		if ( isIgnore(pignorelist) ) {
-			continue;
-		}    
-
-		rightFile.push_back(path);
-		//path.Empty();
+	if ( isOrder ) {
+		if ( strtmp.Find(filenametmp) != -1 ) {
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
+	else {
+		if ( filenametmp.Find(strtmp) != -1 ) {
+			return true;
+		}
+		else {
+			return false;
+		}
 	}
 }
+```
 
-cmpStrFilename函数：
+`infilename` 函数：
 
+```cpp
+bool cmpStrStr::infilename(CString& strtmp, CString& filenametmp) {
+	if ( str.IsEmpty() ) {
+		strtmp = "";
+		filenametmp = "";
+		return false;
+	}
+	else {
+		// 从尾部查找 如果找到'\' 说明str只是一部分路径
+		int pos = str.ReverseFind('\\');
+
+		if ( pos == -1 ) {
+			strtmp = str;
+			filenametmp = "";
+			return false;
+		}
+		else {
+			strtmp = str.Right(str.GetLength() - (pos + 1));
+			filenametmp = str.Mid(pos + 1);
+			return true;
+		}
+	}
+}
+```
+
+```cpp
 int pos = 0;
 
 int end = str.GetLength();
 
 while ( pos < end ) {
-	// 对于str，取得 每个空格分开为的关键词
+	// For str, get the keywords separated by each space
 	pos = str.Find( _T(' ') );
 
 	CString strtmp;
 	if ( pos == -1 ) {
-		// 无空格
+		// No spaces
 		strtmp = str;
 		pos = end;
 	} else {
@@ -708,14 +681,14 @@ while ( pos < end ) {
 }
 ```
 
-可以在infilename函数中，很方便改写字符串匹配的算法，实现某些拓展
+It's convenient to modify the string matching algorithm in the infilename function to achieve certain extensions.
 
-```c++
+```cpp
 CString filenametmp(filename);
 int pos;
 
 if ( !uplow ) {
-	// 大小写敏感
+	// Case-sensitive
 	filenametmp.MakeLower();
 	pos = filenametmp.Find(strtmp.MakeLower());
 } else {
@@ -727,176 +700,136 @@ if ( -1 == pos ) {
 }
 
 if ( !isOrder ) {
-	// 无顺序
+	// No order
 	filename.Delete(0, pos+1);
 }
 ```
- 
 
-### 4.5.5 路径输出 
+#### 4.5.5 Path Output
 
-得到匹配的文件名后，下一步就是得到文件的系统路径。把上面得到的匹配文件名称的全名，传入**4.2.2**中构建的frnPfrnNameMap哈希表，递归得到路径。
+Once we have the matched file name, the next step is to obtain the system path of the file.
 
+Pass the full name of the matched file name into the frnPfrnNameMap hash table constructed by **4.2.2** to recursively obtain the path.
 
-```c++
+```C++
 CString Volume::getPath(DWORDLONG frn, CString &path) {
 
-	// 查找2
+	// Look up 2
 	Frn_Pfrn_Name_Map::iterator it = frnPfrnNameMap.find(frn);
+```
 
-	if (it != frnPfrnNameMap.end()) {
+```cpp
+if (it != frnPfrnNameMap.end()) {
 
-		  if ( 0 != it->second.pfrn ) {
-		 	  getPath(it->second.pfrn, path);
-		  }
+		  if (0 != it->second.pfrn) {
+			  getPath(it->second.pfrn, path);
+		  }
 
-		  path += it->second.filename;
-		  path += ( _T("\") );
-	}
-
-	return path;
+		  path += it->second.filename;
+		  path += (_T("\\"));
 }
+
+return path;
 ```
 
+## 5 Complexity Analysis
 
-5 复杂度分析 
-============
+### 5.1 Time Complexity
 
-5.1 时间复杂度 
---------------
+In theory, the time complexity is:
 
-理论上，时间复杂度分别为：
+![Figure 5-1 Complexity Analysis](https://raw.githubusercontent.com/LeiHao0/BlogAssets/assets/QSearch_05.jpg)
 
-![](/img/QSearch/image014.png)
+On an AMD Athlon (tm) II X2 245 2.9GHz processor, the result is almost instantaneously completed.
 
-图5-1 复杂度分析
+### 5.2 Space Complexity
 
-在AMD Athlon(tm) II X2 245 2.9GHz处理器上，结果几乎瞬间完成。
+The number of files on the computer is huge - usually on the order of 100,000 to 1 million - so the program's memory usage can be negligible.
 
-5.2 空间复杂度 
---------------
+234,708 files are about 43M.
 
-由于电脑文件数量巨大——通常为10W-100W级别，所以程序本身内存占用可以忽略不计。
+For a system with at least 2G of memory, it is not a burden.
 
-234,708个文件  约43M。
+## 6 Problems Encountered
 
-对于如今至少2G的内存的系统来说，算不上负担。
+### 6.1 Unable to initialize USN files
 
-6 遇到的问题 
-============
+The USN log file on the O drive on the computer could not be initialized, and the following was found through debugging:
 
-6.1 无法初始化USN文件 
----------------------
+`DeviceIoControl` returns 0, `GetLastError 0x70`
 
-电脑上的O盘无法初始化USN日志文件，通过调试发现：
+Consulting MSDN, the reason is `ERROR_SHARING_PAUSED`
 
-DeviceIoControl 返回0，GetLastError  0x70
+It turned out that I forgot to initialize and add the following code, and the program can access the O drive normally:
 
-查阅msdn，原因是ERROR_SHARING_PAUSED
-
-原来是忘记初始化添加以下代码，程序即可正常访问O盘
-
-
-```c++
+```cpp
 CREATE_USN_JOURNAL_DATA cujd;
-cujd.MaximumSize = 0; // 0表示使用默认值
-cujd.AllocationDelta = 0; // 0表示使用默认值
+cujd.MaximumSize = 0; // 0 means default value
+cujd.AllocationDelta = 0; // 0 means default value
 ```
 
+### 6.2 Issue with wchar and char in unicode 
 
-6.2 unicode下wchar与char的问题 
-------------------------------
+Initially, I used the string function of the standard library as the processing method for strings, but for double-byte wchar in unicode, I ran into quite a few troubles in string conversion. Finally, all default strings were set to CString and initialized with `_T("")` to solve the problem.
 
-最初在字符串处理方面，用标准库函数的string作为处理方法，但在 unicode
-下为双字节的wchar，在字符串转换方面陷入不少麻烦，最后全部以CString作为默认字符串，并以_T("")，初始化字符串得以解决。
+### 6.3 Minor issue with #ifdef placement
 
-6.3 #ifdef位置的小问题 
------------------------
+One cannot set breakpoints inside `#ifdef`. Later realized that `#define` was written before `include`.
 
-\#ifdef，里面不能设断点，后来才注意到#define写在了include前面。
+### 6.4 Parameter Passing
 
-6.4 参数传递 
-------------
+Initially designed with a procedural philosophy and got stuck in trouble passing the same handle by passing arguments. Later switched to the use of class methods, which improved a lot.
 
-开始以面向过程的思想设计，陷入了不断的以传参的方式，传递相同的句柄的麻烦之中，后来改为用类的方法，改善许多。
+## 7 Minor optimizations
 
-7 小优化 
-========
+### 7.1 Reading Speed
 
-7.1 读取速度 
-------------
+When constructing the hash function, thought of three methods and conducted experiments. Using the `time` function to measure the time used, the results are as follows:
 
-在构建哈希函数时，想到了三种方法，分别作了实验，用time函数统计所用时间，结果如下：
+1. Modify the code to read `usn` once and write to a temporary file for later reading and constructing the hash table.
+   - Time averages around 27s per execution.
+2. Use a vector to store data in memory and release afterwards.
+   - Results are excellent with a time nearly 10 times faster!!! As shown in Figure 7-1:
 
-1）修改代码后，一次性读取usn，存入临时文件，读取、构建哈希表
+![7-1 Traversing All Disks](https://raw.githubusercontent.com/LeiHao0/BlogAssets/assets/QSearch_06.jpg)
 
-每次运行，时间平均27s左右
+Completely within an acceptable range.
 
-2）使用vector，将数据保存在内存中，release后，
+The first run clearly took longer, but subsequent runs pre-read files from the disk cache, causing the speed to skyrocket.
 
-结果喜人，时间提高近10倍！！！如图7-1所示：
+Analysis indicates that the hotspots are disk seek time and file reading.
 
-![](/img/QSearch/image016.png)
+### 7.2 File Opening
 
-7-1 遍历全部磁盘
+In section **4.3.2**, when double-clicking on the file path in the ListBox, opening the response file with the `system()` system function would pop up a black console window, and the main window would be locked until the file was closed before continuing execution. This was very unfavorable for user experience.
 
-完全在可接受的范围之内。
+Switched to calling `ShellExecute` function to open a new process, so the main window could continue executing.
 
-第一次运行明显耗时较长，之后从磁盘缓存中预读文件，速度飙升。分析热点应该在于磁盘寻道时间、以及文件读取。
+### 7.3 Progress Bar
 
-7.2 打开文件方式 
-----------------
+After Version 1.0 was released, some students reported that there was no prompt when the program was counting the files in the background, so they didn't know when it was done.
 
-在**4.3.2**中，双击ListBox中的文件路径，打开响应文件时，刚开始用了system()系统函数，但是会弹出一个黑色的控制台窗口，并且主窗口处于锁定状态，等文件关闭后，才能继续执行，非常不利于用户体验。改为调用ShellExecute函数，从而开辟一个新的进程，主窗口也可以继续执行。
+Added a progress bar to the bottom of the main interface to enhance interactivity, as shown in Figure 7-2:
 
-7.3 进度条 
-----------
+![Figure 7-2 Progress Bar](https://raw.githubusercontent.com/LeiHao0/BlogAssets/assets/QSearch_07.jpg)
 
-V1.0版本放出后，有同学反映后台统计文件时，没有提示，所以不知道什么时候完成。于是在主界面底部加了个进度条，增强交互性，如图
-7-2：
+Of course, the thread function has also been modified as necessary:
 
-![](/img/QSearch/image018.png)
+# 8 Conclusion
 
-图7-2 进度条
+At this point, the basic functions of the program are complete, and it has been tested on multiple computers and different systems (XP and later versions of Windows), with almost no cases of program hanging or crashing.
 
-当然，线程函数也作出了必要的修改：
+Due to time constraints, many features have not been implemented, such as the interface cannot stretch, and dynamic statistical file data is not available.
 
-8 结束语 
-========
+# References
 
-至此，程序基本功能完成，在多台电脑，以及不同的系统上（XP以及之后的windows系列）测试，基本没有假死以及程序挂掉的情况。
-
-由于时间等原因还有许多的功能没有实现，比如界面无法伸展，不能动态的统计文件数据等等。
-
-参考文献 
-========
-
-[1] 硬件白皮书. NTFS文件系统规范[OL]. 百度文库，2011:  30.  
-[2] Beiyu. NTFS文件系统若干技术研究[OL]. 2007: 7.  
-[3] 婴儿. 互动百科[OL]. http://www.hudong.com/wiki/ntfs  
-[4] Microsoft. MSDN Library[OL]. 2012 :  
-[5] Stanley B.Lippman / Josée LaJoie / Barbara E.Moo. C\+\+ Primer[M]. Addison-Wesley Professional , 2006 : 10.3  
-[6] Eric S. Raymond. 译者: 姜宏、何源、蔡晓骏. UNIX编程艺术[m]. 电子工业出版社, 2006:  
-[7] 陈皓. 一些软件设计的原则[OL]. http://coolshell.cn/articles/4535.html  
-[8] 孙鑫. VC++深入详解[m]. 电子工业, 2006    
-[9] Jim Beveridge / Robert Wiener. Multithreading Applications in Win32: The Complete Guide to Threads[m]. Addison-Wesley Professional, 1996: 223-243  
-
-英文摘要 
-========
-
-**Rapid positioning of the NTFS disk files**
-
-Lei Hao
-
- (School of Information & Computer, Anhui Agricultural University, Hefei
-230036)
-
-**Abstract**：This article describes on windows NTFS disk, the
-enumeration all the names of the files and folders on the hard disk ,
-and to build a hash table by using C++ STL, MFC GUI and worker thread.
-Ultimately the user to enter keywords , as a simple search like google
-keyword search , and then instantly return all matching files / folders
-and their system path.
-
-**Key words :** NTFS, fast , keywords , search, file path
- 
+- [1] Hardware White Paper. NTFS File System Specification[OL]. Baidu Document, 2011: 30.
+- [2] Beiyu. Technical Research on NTFS File System[OL]. 2007: 7.
+- [3] Infant. Interactive Encyclopedia[OL]. http://www.hudong.com/wiki/ntfs
+- [4] Microsoft. MSDN Library[OL]. 2012 :
+- [5] Stanley B.Lippman / Josée LaJoie / Barbara E.Moo. C\+\+ Primer[M]. - Addison-Wesley Professional , 2006 : 10.3
+- [6] Eric S. Raymond. Translator: Jiang Hong, He Yuan, Cai Xiaojun. UNIX Art of Programming[m]. Publishing House of Electronics Industry - Social, 2006:
+- [7] Chen Hao. Some Principles of Software Design[OL]. http://coolshell.cn/articles/4535.html
+- [8] Sun Xin. In-depth Explanation of VC++[m]. Publishing House of Electronics Industry, 2006
+- [9] Jim Beveridge / Robert Wiener. Multithreading Applications in Win32: The Complete Guide to Threads
+- [10] Addison-Wesley Professional, 1996: 223-243
