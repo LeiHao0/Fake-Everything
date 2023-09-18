@@ -1,229 +1,194 @@
-# Graduation Project of 2012
+# 2012 Graduation Project
 
 [中文版本](https://github.com/LeiHao0/Fake-Everything/blob/master/README_CN.md)
 
-This was my graduation project in 2012. At that time, I was greatly shocked by the search speed of **Everything**, so I decided to implement one myself.
+This is my graduation project from 2012. At that time, I was amazed by the search speed of **Everything**, so I decided to implement my own search engine.
 
-If you don't know what **Everything** is, please refer to [this](<http://en.wikipedia.org/wiki/Everything_(software)>).
+If you don't know what **Everything** is, please check [here](http://en.wikipedia.org/wiki/Everything_(software)).
 
-> Everything is a proprietary and free Windows desktop search engine that can **quickly** find files and folders on NTFS volumes by their names.
+> Everything is a proprietary free Windows desktop search engine that can quickly search for files and folders on NTFS volumes by name.
 
-I apologize for my almost zero experience with `MFC` and `C++` at that time.
+I apologize for my lack of experience in MFC and C++ at that time.
 
-If you want to know how to get all the files on an NTFS volume and hash them, please read `QSearch/Volume.h`.
+If you want to know how to retrieve all the files on an NTFS volume and hash them, please read `QSearch/Volume.h`.
 
 ---
 
-Oh, the language in the image is still Chinese \^\_\^
+Oh, the language in the pictures is still Chinese ^_^
 
 ![QSearch](http://farm4.staticflickr.com/3762/10834695513_052494fb0d.jpg)
 
 ## Usage
 
 1. Save the image above as -> \*.jpg
-2. Rename .jpg to .7z
+2. Rename the .jpg file to .7z
 3. Extract \*.7z -> (QSearch.exe config.ini)
 
-I hope to refactor it someday, but now I no longer use Windows.
+I hope to refactor it someday, but I no longer use Windows now.
 
 ---
 
 ## Research Content
 
-- Read NTFS MFT.
-- Building of hash table.
-- System path of files.
-- GUI and worker threads.
-- Various search methods.
-- MFC interface.
+- Reading NTFS MFT
+- Building a hash table
+- File system paths
+- GUI and worker threads
+- Multiple search methods
+- MFC interface
 
 ## Research Plan
 
-- Early April - Mid-April: Determine research direction.
-- Late April - End of April: Preparation of each knowledge point and simple tests.
-- Early May: Design of program and debugging and operation.
-- Mid-May - End of May: Writing of graduation thesis.
+- Early April - Mid-April: Determine research direction
+- Late April - End of April: Preparation of various knowledge points, simple tests
+- Early May: Designing the program and debugging and running the development
+- Mid-May - End of May: Writing the graduation thesis
 
-## Features and Innovation
+## Features and Innovations
 
-- CPU and memory usage are within a reasonable range.
-- The software is stable, and provides different search options.
-- Compared to the Windows search function, it can locate files at a super-fast speed.
+- Reasonable CPU and memory usage
+- Stable software that provides different search options
+- Extremely fast file location compared to Windows search functionality
 
 ---
 
-# Quickly Locating NTFS Disk Files
+# Fast Location of NTFS Disk Files
 
 **Abstract**
 
-> This article introduces how to enumerate the names of all files and folders on the hard disk under the windows NTFS disk format, and using the C++ STL to build a hash table, as well as MFC's GUI and worker threads, to achieve simple searching like searching for keywords in Google. Finally, it instantly returns all matching files/folders and recursively obtains the system path of the file/folder based on the user's input keyword.
+This article introduces the enumeration of all file and folder names on a Windows NTFS disk formatted in C++, the construction of a hash table using the STL, and the GUI and worker threads of MFC. It implements a simple search similar to Google keyword search based on user input, and instantly returns all matching files/folders and recursively obtains the system path of the file/folder.
 
 **Keywords**: **NTFS, fast, keyword, search, file path**
 
 ## 1 Introduction
 
-In Windows directory structure, files are arranged in B+ trees on NTFS volumes. When searching for files in directories, B+ tree search method is used to search the root node (starting from the root directory) first. Then, the file name to be searched is compared with the file name corresponding to the sub-node in the root node to determine which sub-node corresponding storage area to search, and then the sub-node is searched as the current root node until the file is found. [1]
+The directory structure of Windows, in an NTFS volume, arranges files in the directory in the form of a B+ tree. When searching for a file in the directory, the B+ tree search method is used to first search the root node (starting from the root directory) and then compare the file name to be searched with the file names in the child nodes of the root node to determine which child node's storage area to search in. The search continues with the child node as the current root node until the file is found. <sup>[1]</sup>
 
-Although the search provided by the Microsoft system can search text content, the speed is not ideal.
+Although the search provided by the Microsoft system can search for text content, the speed is very unsatisfactory.
 
-In most cases, we only want to know which folder the file is stored in the computer, and this program solves this problem very well.
+In most cases, we just want to know which folder on the computer the file is stored in, and this program solves this problem very well.
 
-## 2 Brief Introduction of NTFS
+## 2 Brief Introduction to NTFS
 
 ### 2.1 NTFS
 
-NTFS (New Technology File System) is the standard file system for Windows NT and later Windows.
+NTFS (New Technology File System) is the standard file system for Windows NT and later versions of Windows.
 
 NTFS replaces the File Allocation Table (FAT) file system and provides a file system for Microsoft's Windows series of operating systems.
 
-NTFS makes several improvements to the FAT and HPFS (High Performance File System), such as supporting metadata and using advanced data structures to improve performance, reliability, and disk space utilization. [2]
+NTFS has made several improvements to the FAT and HPFS (High Performance File System), such as support for metadata and the use of advanced data structures to improve performance, reliability, and disk space utilization. <sup>[2]</sup>
 
-### 2.2 Status Quo
+### 2.2 Current Situation
 
-With the popularity of Windows 2000/XP based on NT kernel, many personal users began to use NTFS.
+With the popularity of Windows 2000/XP based on the NT kernel, many individual users have started to use NTFS.
 
-NTFS also stores data files in clusters, but the size of clusters in NTFS does not depend on the size of disks or partitions.
+NTFS also stores data files in clusters, but the size of clusters in NTFS does not depend on the size of the disk or partition.
 
-Reducing the size of clusters not only reduces waste of disk space, but also reduces the possibility of generating disk fragments.
+Reducing the cluster size not only reduces wasted disk space, but also reduces the possibility of disk fragmentation.
 
-NTFS supports file encryption management function, which can provide users with higher-level security guarantees. [3]
+NTFS supports file encryption management, providing users with a higher level of security. <sup>[3]</sup>
 
 ## 3 Preparation
 
-### 3.1 Design Idea
+### 3.1 Design Ideas
 
-Read all file names on the disk as data, and match them in the data based on the user's input keywords.
-Return the correct path together with the data to open the file conveniently.
+Read all file names on the disk as data and match them based on user input keywords.
 
-The specific design idea is shown in Figure 3-1.
+Return the matched file names along with their system paths to facilitate file opening.
 
-![Figure 3-1 Design Idea](https://raw.githubusercontent.com/LeiHao0/BlogAssets/assets/QSearch_00.jpg)
+The specific design ideas are shown in Figure 3-1.
 
-The biggest advantage of hash table is to greatly reduce the time and cost of storing and searching data. It can be seen as constant time, and the cost is only more memory consumption.
+![Figure 3-1 Design Ideas](https://raw.githubusercontent.com/LeiHao0/BlogAssets/assets/QSearch_00.jpg)
 
-However, in the case of increasing available memory, the approach of using space to exchange time is worthwhile.
+The biggest advantage of a hash table is that it greatly reduces the time required for data storage and retrieval, and can be considered as constant time; the only cost is the consumption of more memory.
 
-In addition, easy coding is one of its characteristics.
+However, in the current situation where more and more available memory is available, the approach of trading space for time is worth it.
+
+In addition, easy coding is also one of its characteristics.
 
 ### 3.2 What is USN
 
-The most important thing in the program is to read USN.
+The most important part of the program is to read the USN.
 
-USN is the abbreviation of Update Service Number Journal or Change Journal, which records the modified information in the NTFS volume and can monitor the number of modified files and directories in the partition, and record the modification time and content of the monitored object.
+USN stands for Update Service Number Journal or Change Journal, which is a function of recording information about modified information in an NTFS volume, and can be used to monitor the number of files and directories that have been modified in a partition, and record the modification time and content of the monitored objects.
 
-When USN logging is enabled, for each NTFS volume, when there is information about adding, deleting and modifying files, NTFS records it using USN logging and stores it in the format of USN_RECORD.
+When the USN log is enabled, for each NTFS volume, when there is information about adding, deleting, and modifying files, NTFS records it in the USN log and stores it in the format of USN_RECORD.
 
-### 3.3 Why is it Fast
+### 3.3 Why Fast
 
-The USN log is equivalent to the directory of WORD, providing an index. When the content of the article changes, the USN log will record when the modification was made, but it does not record what was modified specifically, so the index file is very small.
+The USN log is like a table of contents for a book. It provides an index. When the content of the article changes, the USN log records when the modification was made, but it does not record what was specifically modified inside, so the index file is very small.
 
-Similarly, when you want to find a specific paragraph in the article, you don't need to scroll the mouse madly, just look at the directory, and positioning only needs to hold down ctrl+click the mouse.
+When you want to find a specific paragraph in the article, you don't need to scroll the mouse wheel frantically, just look at the table of contents, and you only need to press Ctrl + click to locate.
 
-Similarly, when you want to find a specific file, you can directly check the USN log (that is, the index established) to know whether this file exists.
+Similarly, when you want to find a specific file, you can directly find out if the file exists by searching the USN log (that is, the index) without searching the entire file system.
 
-PS: Although Windows is not "everything is a file" (one of the basic philosophies of Unix/Linux), folders also exist in the form of files, so you can also use USN to find the location.
+PS: Although Windows is not "everything is a file" (one of the basic philosophies of Unix/Linux), folders also exist in the form of files, so you can also use USN to locate them.
 
 ### 3.4 Environment
 
-Since the NTFS format is originally a Microsoft patent, it provides a series of API functions for us to conveniently access.
+Since the NTFS format is Microsoft's patent, it provides a series of API functions for convenient access.
 
-As an old but classic programming tool, Visual C++ 6.0 was chosen. However, NTFS format was not available at that time, so VC2005 was chosen as the integrated development environment, which can only run on windows systems from 2000 onwards.
+As an old but classic Visual C++ 6.0 programming tool, it did not have the NTFS format at that time, so VC2005 was chosen as the integrated development environment, and it can only run on Windows systems after 2000.
 
-## 4 Implementation of the Program
+## 4 Program Implementation
 
 ### 4.1 Reading USN
 
-The following are API functions provided by Microsoft^[4]^, included in the header file `<Winioctl.h>`.
+The following are API functions provided by Microsoft, included in the `<Winioctl.h>` header file.
 
-#### 4.1.1 Checking Disk Format
+#### 4.1.1 Determine Disk Format
 
-To find out which disk is in NTFS format, call the following function:
+Call the following function to find the disk in NTFS format:
 
 ```cpp
 GetVolumeInformation(
-	lpRootPathName: PChar;               // String of the disk drive code
-	lpVolumeNameBuffer: PChar;           // Volume label name of the disk drive
-	nVolumeNameSize: DWORD;              // Length of the volume label name of the disk drive
-	lpVolumeSerialNumber: PDWORD;        // Volume label serial number of the disk drive
-	var lpMaximumComponentLength: DWORD; // Maximum file name length allowed by the system
+    lpRootPathName: PChar;               // Drive code string
+    lpVolumeNameBuffer: PChar;           // Drive volume label name
+    nVolumeNameSize: DWORD;              // Length of drive volume label name
+    lpVolumeSerialNumber: PDWORD;        // Drive volume serial number
+    var lpMaximumComponentLength: DWORD; // Maximum file name length allowed by the system
     var lpFileSystemFlags: DWORD;        // File system identifier
-	lpFileSystemNameBuffer: PChar;       // Format type
-	nFileSystemNameSize: DWORD           // Length of the file operating system name
+    lpFileSystemNameBuffer: PChar;       // Format type
+    nFileSystemNameSize: DWORD           // Length of file operating system name
 );
 ```
 
-The lpFileSystemNameBuffer returned is what we need and will return strings such as "FAT32" and "NTFS".
+The lpFileSystemNameBuffer, which is what we need, will return strings like "FAT32" or "NTFS".
 
-Then, a loop is used to count the NTFS-formatted drive letters A-Z, and then initialize.
+Then, using a loop, count the NTFS format drive letters from A to Z and initialize them.
 
-#### 4.1.2 Getting Drive Handle
+#### 4.1.2 Get Drive Handle
 
 ```cpp
 HANDLE hVol = CreateFile(
-	"drive letter string",  // must be in the form of \.\C: (A-Z)
-	GENERIC_READ | GENERIC_WRITE, // can be
-	FILE_SHARE_READ | FILE_SHARE_WRITE, // must include FILE_SHARE_WRITE
+    "Drive letter string",  // Must be in the form of \.\C: (A-Z)
+    GENERIC_READ | GENERIC_WRITE, // Can be
+    FILE_SHARE_READ | FILE_SHARE_WRITE, // Must include FILE_SHARE_WRITE
+    NULL, // Not needed here
+    OPEN_EXISTING, // Must include OPEN_EXISTING, CREATE_ALWAYS may cause errors
+    FILE_ATTRIBUTE_READONLY, // FILE_ATTRIBUTE_NORMAL may cause errors
+    NULL); // Not needed here
 ```
 
-```
-## 4.1 Get the USN Journal Records
+A few points to note:
 
-### 4.1.1 USN Journal Data Structure
+1. CreateFile returns a handle that will be used later.
+2. Since the drive letter must be in the form of `\\.\C:`, in the `C++` language, the backslash `//` represents `/`.
+3. Administrator privileges are required (UAC will pop up in Vista and Win7).
 
-The `USN_RECORD_V2` structure is used to store the record of each change that occurs. Here is the structure:
+If `hVol != INVALID_HANDLE_VALUE`, it means that the handle is obtained successfully and you can proceed to the next step.
 
-```cpp
-typedef struct {
-    DWORD    RecordLength;
-    WORD    MajorVersion;
-    WORD    MinorVersion;
-    DWORDLONG FileReferenceNumber;
-    DWORDLONG ParentFileReferenceNumber;
-    USN      Usn;
-    LARGE_INTEGER TimeStamp;
-    DWORD    Reason;
-    DWORD    SourceInfo;
-    DWORD    SecurityId;
-    FileAttributes FileAttributes;
-    WORD     FileNameLength;
-    WORD     FileNameOffset;
-    WCHAR    FileName[1];
-} USN_RECORD_V2, *PUSN_RECORD_V2;
-```
-
-### 4.1.2 Get the Volume Handle
-
-To get the volume handle, use the `CreateFile` function with the `\\.\volume path` format.
-
-```cpp
-CreateFileW(L"\\\\.\\C:",
-	NULL,
-	FILE_SHARE_READ | FILE_SHARE_WRITE,
-	NULL,
-	OPEN_EXISTING,
-	FILE_ATTRIBUTE_READONLY,
-	NULL);
-```
-
-A few things to note:
-
-1. `CreateFile` returns a handle that will be used later in the code;
-2. The drive letter must be in the `\\.\volume` format. In C++ language, the backslash `\` is used as an escape character, so they need to be doubled (`\\`);
-3. Administrator rights are required (UAC may pop up in Vista, Win7).
-
-If `hVol != INVALID_HANDLE_VALUE`, the handle is obtained successfully and the next step can be taken.
-
-### 4.1.3 Initialize the USN Journal
+#### 4.1.3 Initialize USN Journal
 
 Use `FSCTL_CREATE_USN_JOURNAL` as the control code for `DeviceIoControl`.
 
-`Cujd` is a pointer to an input buffer that points to the `CREATE_USN_JOURNAL_DATA` structure.
+`Cujd` is a pointer to the input buffer, pointing to the `CREATE_USN_JOURNAL_DATA` structure.
 
-### 4.1.4 Retrieve Information from the USN Journal
+#### 4.1.4 Get USN Journal Information
 
 Use `FSCTL_QUERY_USN_JOURNAL` as the control code for `DeviceIoControl`.
 
-`lpOutBuffer` will return a `USN_JOURNAL_DATA` structure:
+`lpOutBuffer` returns a `USN_JOURNAL_DATA`, which is a structure.
 
 ```cpp
 typedef struct {
@@ -237,160 +202,138 @@ typedef struct {
 } USN_JOURNAL_DATA, *PUSN_JOURNAL_DATA;
 ```
 
-`UsnJournalID`, `FirstUsn`, and `NextUsn` will be used in the next step.
+`UsnJournalID`, `FirstUsn`, and `NextUsn` will be used later.
 
-#### 4.1.5 Obtaining information about USN Journal files
+#### 4.1.5 Get USN Journal File Information
 
-Since `USN` is stored in the form of `USN_RECORD`, its structure is as follows:
+Since the USN is stored in the form of `USN_RECORD`, its structure is as follows:
 
 ```cpp
 typedef struct {
-	DWORD RecordLength; // length of record
-	WORD MajorVersion; // major version
-	WORD MinorVersion; // minor version
-	DWORDLONG FileReferenceNumber; // file reference number
-	DWORDLONG ParentFileReferenceNumber; // parent directory reference number
-	USN Usn; // USN
-	LARGE_INTEGER TimeStamp; // timestamp
-	DWORD Reason; // reason
-	DWORD SourceInfo; // source information
-	DWORD SecurityId; // security
-	ID DWORD FileAttributes; // file attributes
-	WORD FileNameLength; // length of file name
-	WORD FileNameOffset; // file name offset
-	DWORD ExtraInfo1;
-	DWORD ExtraInfo2; DWORD ExtraInfo3; // Hypothetically added in version 2.3
-	WCHAR FileName[1]; // pointer to the first character of the file name
-} USN_RECORD, * PUSN_RECORD;
+    DWORD RecordLength; // Record length
+    WORD MajorVersion; // Major version
+    WORD MinorVersion; // Minor version
+    DWORDLONG FileReferenceNumber; // File reference number
+    DWORDLONG ParentFileReferenceNumber; // Parent directory reference number
+    USN Usn; // USN
+    LARGE_INTEGER TimeStamp; // Timestamp
+    DWORD Reason; // Reason
+    DWORD SourceInfo; // Source information
+    DWORD SecurityId; // Security
+    DWORD FileAttributes; // File attributes
+    WORD FileNameLength; // File name length
+    WORD FileNameOffset; // File name offset
+    DWORD ExtraInfo1;
+    DWORD ExtraInfo2; DWORD ExtraInfo3; // Hypothetically added in version 2.3
+    WCHAR FileName[1]; // Pointer to the first character of the file name
+} USN_RECORD, *PUSN_RECORD;
 ```
 
-Note the variables `FileReferenceNumber`, `ParentFileReferenceNumber`, `FileNameLength`, `FileName`. 
+Note the `FileReferenceNumber`, `ParentFileReferenceNumber`, `FileNameLength`, and `FileName`, which are crucial variables.
 
-These variables are crucial.
+Use `DeviceIoControl()` with `FSCTL_ENUM_USN_DATA`.
 
-`DeviceIoControl()` and `FSCTL_ENUM_USN_DATA` work together:
+```cpp
+while (0 != DeviceIoControl(hVol,
+    FSCTL_ENUM_USN_DATA,
+    &med,
+    sizeof(med),
+    Buffer,
+    BUF_LEN,
+    &usnDataSize,
+    NULL)) {
 
-```C++
-while (0! = DeviceIoControl(hVol,
-	FSCTL_ENUM_USN_DATA,
-	&med,
-	sizeof(med),
-	Buffer,
-```
+    DWORD dwRetBytes = usnDataSize - sizeof(USN);
+    // Find the first USN record
+    UsnRecord = (PUSN_RECORD)(((PCHAR)Buffer) + sizeof(USN));
 
-```
-BUF_LEN,
-&usnDataSize,
-NULL)) {
+    while (dwRetBytes > 0) {
 
-DWORD dwRetBytes = usnDataSize - sizeof(USN);
-// Find the first USN record
-UsnRecord = (PUSN_RECORD)(((PCHAR)Buffer) + sizeof(USN));
+        // Get the information
+        CString CfileName(UsnRecord->FileName, UsnRecord->FileNameLength / 2);
+        pfrnName.filename = nameCur.filename = CfileName;
+        pfrnName.pfrn = nameCur.pfrn = UsnRecord->ParentFileReferenceNumber;
 
-while (dwRetBytes > 0) {
+        // Vector
+        VecNameCur.push_back(nameCur);
 
-    // Information obtained
-    CString CfileName(UsnRecord->FileName, UsnRecord->FileNameLength / 2);
-    pfrnName.filename = nameCur.filename = CfileName;
-    pfrnName.pfrn = nameCur.pfrn = UsnRecord->ParentFileReferenceNumber;
+        // Build the hash...
+        frnPfrnNameMap[UsnRecord->FileReferenceNumber] = pfrnName;
+        // Get the next record
+        DWORD recordLen = UsnRecord->RecordLength;
+        dwRetBytes -= recordLen;
+        UsnRecord = (PUSN_RECORD)(((PCHAR)UsnRecord) + recordLen);
 
-    // Vector
-    VecNameCur.push_back(nameCur);
-
-    // Build hash...
-    frnPfrnNameMap[UsnRecord->FileReferenceNumber] = pfrnName;
-    // Get the next record
-    DWORD recordLen = UsnRecord->RecordLength;
-    dwRetBytes -= recordLen;
-    UsnRecord = (PUSN_RECORD)(((PCHAR)UsnRecord) + recordLen);
-
+    }
+    // Get the next page of data
+    med.StartFileReferenceNumber = *(USN *)&Buffer;
 }
-// Get the next page of data
-med.StartFileReferenceNumber = *((USN *)&Buffer);
 ```
 
-Here, `Med` is:
+In this loop, each time a file name is obtained, it is inserted into both the vector and the hash table (explained later).
 
-```C++
-MFT_ENUM_DATA med;
+#### 4.1.6 Delete USN Journal File
 
-med.StartFileReferenceNumber = 0;
-
-med.LowUsn = 0;//UsnInfo.FirstUsn;
-```
-
-
-Here it was found by testing that sometimes using `FirstUsn` is incorrect, resulting in incomplete data being retrieved, so it is better to directly write 0.
-
-`med.HighUsn = UsnInfo.NextUsn;`
-
-In this loop, the file names obtained each time are inserted into the vector and hash table separately (as described below).
-
-#### 4.1.6 Delete USN log file
-
-```C++
+```cpp
 DeviceIoControl(hVol,
-	FSCTL_DELETE_USN_JOURNAL,
-	&dujd,
-	sizeof (dujd),
-	NULL,
-	0,
-	&br,
-	NULL)
+    FSCTL_DELETE_USN_JOURNAL,
+    &dujd,
+    sizeof(dujd),
+    NULL,
+    0,
+    &br,
+    NULL)
 ```
 
-#### 4.1.7 Enumeration of all files
+#### 4.1.7 Enumeration of All File Results
 
-Save the data first as a text file named Allfile.txt for analysis, as shown in Figure 4-1.
+Save the data as Allfile.txt first for analysis, as shown in Figure 4-1.
 
 ![Figure 4-1 Allfile.txt](https://raw.githubusercontent.com/LeiHao0/BlogAssets/assets/QSearch_01.jpg)
 
 ![Figure 4-1 Allfile.txt](https://raw.githubusercontent.com/LeiHao0/BlogAssets/assets/QSearch_02.jpg)
 
-Using the D drive on my own computer as a test, all files were enumerated.
+Using the D drive on my computer as a test, all files were enumerated.
 
-As shown in the figure, there are about 400,000 files, a total of over 1 million records, and the file size is about 20MB.
+As shown in the figure, there are approximately 400,000 files, with over 1 million data entries, and a file size of about 20MB.
 
-For the amount of memory occupied by the program later, there is a rough estimate of about 50MB, even with only 1GB of memory.
+This gives a rough estimate of the amount of memory the program occupies, which is about 50MB, even with only 1GB of memory, it is within a reasonable range.
 
 With the raw data, the analysis is as follows:
 
-For example, the file Linux programming practice.isz has the system path: `D:\Ghost\Linux\Linux programming practice.isz`. Looking at the results in the file:
+For example, for the file "Linux Programming Practice.isz", its system path is: `D:\Ghost\Linux\Linux Programming Practice.isz`. Looking at the results in the file:
 
 ```
 D:\
 Frn: 5000000000005
 Pfrn: NULL
-……
-……
+...
+...
 Ghost
 Frn: 20000000000fd
 Pfrn: 5000000000005
-……
-……
+...
+...
 Linux
 Frn: e0000000010d2
 Pfrn: 20000000000fd
-……
-```
-
-
-......
+...
+...
 Linux Programming Practice.isz
 Frn: 190000000003b2
 Pfrn: e0000000010d2
-We can get:
-Linux Programming Practice.isz->Pfrn == Linux->Frn
-Linux->Pfrn == Ghost->Frn
-Ghost->Pfrn == D:\ -> Frn
-D:\ -> Pfrn Stop
+It can be concluded that:
+Linux Programming Practice.isz -> Pfrn == Linux -> Frn
+Linux -> Pfrn == Ghost -> Frn
+Ghost -> Pfrn == D:\ -> Frn
+D:\ -> Pfrn stops
 ```
 
-So a recursive function (a function that calls itself, either directly or indirectly) can be used to obtain the complete path.
+So by using a recursive function (a function that directly or indirectly calls itself), you can get the complete path.
 
-### 4.2 Building Lookup Data
+### 4.2 Building Search Data
 
-#### 4.2.1 Building Vector
+#### 4.2.1 Building a Vector
 
 ```cpp
 typedef struct _name_cur {
@@ -401,21 +344,19 @@ typedef struct _name_cur {
 
 Vector:
 
-An order container.
+A sequential container.
 
-Elements in the vector are accessed by their positional index.
+Elements in the vector can be accessed using their position index.
 
-Elements can be added to the vector by calling the push_back or insert function.
+Elements can be added to the vector using push_back or insert functions.
 
-Adding elements to the vector may require reallocating memory for the container, and may also invalidate all iterators.
+Adding or removing elements in the middle of the vector may cause all iterators pointing to elements after the insertion or deletion point to become invalid.
 
-Adding (or deleting) elements in the middle of the vector will invalidate all iterators to elements after the insertion (or deletion) point.
+Using a vector to store <filename, current directory>, binary search or other fast search methods are not suitable here. The linear traversal from begin to end of the vector is more suitable for this requirement.
 
-Using a Vector to store <filename, current directory> is not suitable for quick lookup methods such as binary search due to the requirements of fuzzy lookup. Instead, the linear traversal method of Vector from begin to end is more suitable for this requirement.
+#### 4.2.2 Building a Hash Table
 
-#### 4.2.2 Building Hashtable
-
-```C++
+```cpp
 typedef struct pfrn_name {
     DWORDLONG pfrn;
     CString filename;
@@ -424,19 +365,19 @@ typedef struct pfrn_name {
 typedef map<DWORDLONG, Pfrn_Name> Frn_Pfrn_Name_Map;
 ```
 
-Here we use STL's map library function^[5]^, map is a collection of key-value pairs.
+Here, using the map library functions provided by the STL, map is a collection of key-value pairs.
 
-The map type is often understood as an associative array: a value can be obtained using a key as an index, just like a built-in array type.
+The map type can usually be understood as an associative array: it uses keys as subscripts to obtain a value, just like the built-in array types.
 
 The essence of association is that the value of an element is associated with a specific key, not obtained by the position of the element in the array.
 
-1. Considering that if one were to implement their own hash function, there might be several bugs that would affect the progress, it is better to use the stable map provided by STL instead to implement.
-2. "Don't Reinvent the Wheel", don't reinvent what has already been invented^[6]^
-   1. For example, Google's Android system uses the well-established Linux kernel because Google may not have the ability to develop a system kernel on its own. I believe that as a world-class giant company like Google, it is not impossible for them to possess this capability, but rather this is a demonstration of the principle to not reinvent a wheel that has already been invented.
+1. Considering that there may be some bugs if I implement my own hash function, it is better to use the stable map provided by the STL to implement it.
+2. "Don't Reinvent the Wheel" - Don't reinvent something that already exists.
+   1. For example, Google's Android uses the mature Linux kernel because Google didn't have the ability to develop a kernel on its own. I think a world-class giant like Google should have the ability, but they adhere to the principle of not reinventing the wheel.
 
-#### 4.2.3 Inserting Data:
+#### 4.2.3 Inserting Data
 
-This is where we use the loop in section 4.1.5 to obtain information from the USN Journal file, and insert the `filename`, `pfrn`, and `frn` obtained from the `USN_RECORD` information into both the vector and hash table.
+In the loop mentioned in 4.1.5, each time a `USN_RECORD` information is obtained, the `filename`, `pfrn`, and `frn` are inserted into the vector and the hash table, respectively.
 
 ```
 pfrnName.filename = nameCur.filename = CfileName;
@@ -445,391 +386,283 @@ VecNameCur.push_back(nameCur);
 frnPfrnNameMap[UsnRecord->FileReferenceNumber] = pfrnName;
 ```
 
-### 4.3 User Interface
+### 4.3 Interface
 
-When starting a project, VC2005 provides command-line (console) projects and GUI projects.
+At the beginning of the project, VC2005 provides command-line (console) projects and GUI projects.
 
-Command-line programming is very convenient, fast, practical, and relatively simple. 
-When the console can meet the requirements, there is no need for a GUI. 
+Command-line programming is very convenient, fast, and practical, and relatively simple.
 
-Or sometimes the target platform cannot display a graphical user interface. 
+If the console can meet the requirements, there is no need for a GUI.
 
-However, GUI has more obvious advantages, such as menu system and better interactivity. 
+Sometimes the target platform may not be able to display a graphical user interface.
 
-In addition, the mouse is very useful during menu selection, field data movement and input process, and GUI is the only way to go.
+However, GUI has more obvious advantages, such as menu systems and better interactivity.
 
-Therefore, when writing a program, try out intermediate data on the console first. When there are no problems, switch to the GUI interface.
+In addition, the mouse is very useful in menu selection and moving data between fields during data entry, so GUI is the way to go.
 
-MFC: Microsoft Foundation Classes, also known as MFC for short, is Microsoft's biggest contribution to "reducing the tediousness, boredom, and difficulty of Windows program design".
+Therefore, when writing the program, I first experimented with some intermediate data in the console, and when there were no problems, I switched to the GUI.
 
-MFC makes the creation of dialog boxes extremely simple.
+MFC: Microsoft Foundation Classes, which is commonly referred to as MFC, is Microsoft's greatest contribution to "reducing the boredom, annoyance, and difficulty of Windows program design."
 
-It also implements a message dispatching system, which handles common errors relating to WPARAM and LPARAM.
+MFC makes it very easy to create dialog boxes.
 
-MFC is even the driving force behind some people learning C++.
+It also implements a message dispatching system, handling WPARAM and LPARAM, which is prone to errors.
 
-This program is implemented with MFC provided by Microsoft as shown in Figure 4-2:
+MFC is even the driving force behind some people's entry into C++.
+
+This program is implemented using the MFC provided by Microsoft, as shown in Figure 4-2:
 
 ![Figure 4-2 MFC Interface](https://raw.githubusercontent.com/LeiHao0/BlogAssets/assets/QSearch_04.jpg)
 
 #### 4.3.1 KISS Principle
 
-The KISS principle stands for "Keep It Simple and Stupid", emphasizing the importance of simplicity and ease of operation in design.
+The KISS principle stands for "Keep It Simple and Stupid," and simplicity and ease of operation are the most important principles in design.
 
-The KISS principle is possibly the most esteemed principle in design, from home decor and interface design to operation design. Complex things are increasingly being frowned upon, while simple things are being appreciated more and more. Examples of negative UI design include Chinese websites and complex interface designs.
+The KISS principle is probably the most respected in design, and in home design, interface design, and operation design, complex things are increasingly being criticized, while simple things are increasingly being recognized, such as the design of these UIs and our Chinese web pages.
 
-"IKEA" emphasizes simple and efficient home design and manufacturing concepts; "Microsoft" emphasizes a "what you see is what you get" philosophy; "Google" has a simple and straightforward business style that adheres to the KISS principle without exception. ^[7]^
+IKEA's simple and efficient home design and production philosophy, Microsoft's "What You See Is What You Get" concept, and Google's simple and direct business style all follow the "KISS" principle. <sup>[7]</sup>
 
-#### 4.3.2 Functionality
+#### 4.3.2 Features
 
-Under the KISS principle, simplicity should be emphasized as much as possible.
+Under the KISS principle, simplicity is pursued as much as possible.
 
-Adding Editbox, button, listbox, and menu controls, the functionality is as follows:
+Add Editbox button listbox menu<sup>[8]</sup> controls to implement the following features:
 
 - Editbox
-  - Obtain the user input string to be searched for
+  - Get the user input string to be searched
 - Button
-  1. Obtain the string from the EditBox
-  2. Display a prompt if the string is too short
-  3. Add a magnifying glass image for obvious functionality
+  1. Get the string from the EditBox
+  2. Show a prompt if the string is too short
+  3. Add a magnifying glass image to indicate the functionality
 - Listbox
-  1. Display the matching filenames and their paths, and double-clicking opens the file
-  2. Due to the length of the path, add a horizontal scrollbar
-  3. Double-clicking on a result file path in the Listbox opens the selected file
+  1. Display the matching file names and paths, double-click to open the file
+  2. Since the path may be long, add a horizontal scrollbar
+  3. Double-clicking on a file path in the Listbox will open the selected file
 - Menu
-  - A menu that allows case-sensitive/insensitive searching and searching in either a forward or backward order.
+  - Menu options to select case sensitivity and search order
 
 ### 4.4 Adding Threads
 
-#### 4.4.1 Why Add Threads?
+#### 4.4.1 Why Add Threads
 
-The benefits of threads: threads are inexpensive.
+Benefits of threads: Threads are cheap.
 
-Threads start and exit quickly and have a minimal impact on system resources.
+Threads start quickly, exit quickly, and have a smaller impact on system resources.
 
-Taking these factors into consideration:
+Also, considering:
 
-1. Due to the limitations of IO, multiple threads reading MFT from the same hard drive simultaneously may not be very meaningful. 
-2. Accessing MFT from different partitions on the same hard drive may actually affect speed, but it can greatly improve efficiency when accessing multiple hard drives. However, computer users with multiple hard drives may have formed a RAID array. The best solution is to read the disks in sequence from A-Z. 
-3. Initially, when creating MFC, executing in order resulted in the interface not being displayed until all data was calculated, which could easily make users lose patience. 
-4. The ultimate solution is to have one UI thread and one worker thread to calculate data in the background. 
+1. Due to I/O limitations, using multiple threads to read the MFT simultaneously from the same disk is not very meaningful.
+2. Accessing the MFT of different partitions on the same disk may actually affect the speed. For computers with multiple disks, it should greatly improve efficiency. However, users with multiple disks may have RAID disk arrays. The best solution should be to read the disks in order from A to Z.
+3. Initially, when creating MFC, it was executed sequentially, resulting in the interface not being displayed until all data was counted, which easily made users lose patience.
+4. Finally, I decided to have one UI thread and one worker thread to count the data in the background.
 
 #### 4.4.2 Starting a Worker Thread in MFC
 
-MFC has supported multithreading for a long time. 
+MFC has long supported multithreading.
 
-In a typical MFC program, multithreading support is hidden behind a very impressive amount of work. 
+In a typical MFC program, support for multithreading is hidden behind a lot of amazing work.
 
-MFC even tries to reinforce certain Win32 concepts related to multithreading. 
+MFC even attempts to reinforce certain Win32 concepts related to multithreading.
 
-Both the GUI and worker threads are started using `AfxBeginThread()`. However, MFC uses the overloading feature of C++ functions to provide two different declarations for this function. The compiler automatically selects the correct one based on the parameters you provide.^[9]^ 
+Both the GUI and worker threads are started using `AfxBeginThread()`, but MFC uses the overloading nature of C++ functions to provide two different declarations for this function. The compiler automatically chooses the correct one based on the parameters you provide. <sup>[9]</sup>
 
-Use `AfxBeginThread` to start a thread. 
+Use `AfxBeginThread` to start a thread.
 
-`pParam` is an arbitrary 4-byte value that is passed to the new thread. 
+`pParam` is an arbitrary 4-byte value that is passed to the new thread.
 
-It can be an integer, a pointer, or simply 0. 
+It can be an integer, a pointer, or simply 0.
 
-Only the first two parameters are used here, the thread function in the object and a pointer to the object. 
+Only the first two parameters are needed here, the thread function in the object and a pointer to that object.
 
-Two threads can be seen in the task manager, as shown in Figure 4-3. 
+In the task manager, you can see two threads, as shown in Figure 4-3:
 
-![Figure 4-3 Displaying the Number of Threads in the Task Manager](https://raw.githubusercontent.com/LeiHao0/BlogAssets/assets/QSearch_03.jpg)
+![Figure 4-3 Task Manager Showing Thread Count](https://raw.githubusercontent.com/LeiHao0/BlogAssets/assets/QSearch_03.jpg)
 
-When the worker thread completes its task, it will automatically terminate and return to a single thread. 
+When the worker thread completes its task, it will automatically end and return to a single thread.
 
-#### 4.4.3 Minimizing to the Notification Area
+#### 4.4.3 Minimize to the Notification Area
 
-Nowadays, more and more programs click on the close button in the upper right corner to minimize to the tray icon. To truly exit the program, you need to right-click on the tray icon and select "exit". 
+Nowadays, more and more programs minimize to the system tray icon when the close button in the upper right corner is clicked. To truly exit the program, you need to right-click the tray icon and select exit.
 
-Minimizing to the system tray while keeping the program running can make it easier to find files. 
+To implement minimizing without exiting the program, it is convenient to search for files.
 
-- Minimize to the taskbar. 
-- Clicking close will exit to the system tray and will not be displayed on the taskbar. Double-click to restore the window display.
-
-- Add menu to tray icon.
+- Minimize and show in the taskbar.
+- Clicking close exits to the system tray icon without showing in the taskbar; double-clicking restores the window display.
+- Add a menu to the system tray icon.
 
 ### 4.5 Search
 
 #### 4.5.1 Wildcards
 
-In actual use, file names cannot always be remembered clearly, for example, test.2012-5-14.txt, often users input "test.txt", so fuzzy search is needed.
+In practical applications, it is not possible to remember the file name or path clearly, for example, "test.2012-5-14.txt" is often entered as "test.txt," so fuzzy searching is needed.
 
-As creating a hash table with <filename, pfrn> under console, if fuzzy search is needed, the hash table is unnecessary, and vector container can be directly utilized.
+Since in the console, a hash table was created using <filename, pfrn>, if fuzzy searching is to be implemented, the hash table is not necessary, and the vector container can be directly used.
 
-Considering the actual situation, strict wildcards are unnecessary, '* ?' can solve most of the search problems, and users generally may not know how to use wildcards, let alone regular expressions.
+Based on the actual situation, there is no need for strict wildcards. `* ?` can solve most search problems, and users generally may not know how to use wildcards, let alone regular expressions.
 
-Therefore, replace '* ?' with "space" to implement the search method of separating keywords with spaces like that of Baidu and Google, which is a good solution.
+So, using a space as a substitute for `* ?` and implementing a search method where keywords are separated by spaces, similar to Baidu and Google, is a good solution.
 
-#### 4.5.2 Case sensitivity and order
+#### 4.5.2 Case Sensitivity, Order
 
 There are generally three situations:
 
-1. Users may not remember the case of file names or paths.
-2. Sometimes there are too many files, and strict case sensitivity is needed to filter the correct files.
-3. Users may not remember the order of keywords.
+1. Users may not remember the case of the file name or path.
+2. Sometimes, when there are too many files, strict case sensitivity may be needed to filter the correct files.
+3. Users may not remember the order of the keywords.
 
-Therefore, the following two options are provided:
+So, the following two options are provided:
 
-1. Strict case sensitivity.
-2. No order.
+1. Case-sensitive search
+2. Unordered search
 
-According to the general situation, the default search method is case-insensitive and has order.
+Based on common situations, the default is case-insensitive search with ordered search.
 
-#### 4.5.3 User privacy and system paths
+#### 4.5.3 User Privacy and System Paths
 
-1. Considering that some folders are used to store users' private files.
-2. System folders, such as 'c:\windows\*', are generally not necessary for users and searching for them will only increase unnecessary files, adding to the burden on the system.
+1. Considering that some folders are used to store private files.
+2. System folders, such as `c:\windows\*`, are generally not needed by users and searching for them will only increase unnecessary files and burden the system.
 
-Therefore, it is necessary to add an option to exclude folders, as shown in Figure 4-4.
+So it is necessary to add an option to exclude folders, as shown in Figure 4-4.
 
-![Figure 4-4 Exclude folders interface](https://raw.githubusercontent.com/LeiHao0/BlogAssets/assets/QSearch_06.jpg)
+![Figure 4-4 Exclude Folders Interface](https://raw.githubusercontent.com/LeiHao0/BlogAssets/assets/QSearch_06.jpg)
 
 The corresponding function is:
 
 ```cpp
-bool isIgnore( vector<string>* pignorelist ) {
-	string tmp = CW2A(path);
-	for ( vector<string>::iterator it = pignorelist->begin();
-		it != pignorelist->end(); ++it ) {
-			size_t i = it->length();
-
-```cpp
-bool cmpStrStr::cmpStrFilename(CString str, CString filename) {
-	CString strtmp;
-	CString filenametmp;
-
-	if ( !infilename(strtmp, filenametmp) ) {
-		return false;
-	}
-
-	if ( uplow ) {
-		strtmp.MakeLower();
-		filenametmp.MakeLower();
-	}
-
-	if ( isOrder ) {
-		if ( strtmp.Find(filenametmp) != -1 ) {
-			return true;
-		}
-		else {
-			return false;
-		}
-	}
-	else {
-		if ( filenametmp.Find(strtmp) != -1 ) {
-			return true;
-		}
-		else {
-			return false;
-		}
-	}
+bool isIgnore(vector<string>* pignorelist) {
+    string tmp = CW2A(path);
+    for (vector<string>::iterator it = pignorelist->begin(); it != pignorelist->end(); ++it) {
+        size_t i = it->length();
+        if (!tmp.compare(0, i, *it, 0, i)) {
+            return true;
+        }
+    }
+    return false;
 }
 ```
 
-`infilename` 函数：
+#### 4.5.4 Implementation
+
+After obtaining the matched file names, the next step is to obtain the system paths of the files.
+
+Pass the full name of the matched file obtained above to the hash table `frnPfrnNameMap` constructed in **4.2.2**, and recursively obtain the path.
 
 ```cpp
-bool cmpStrStr::infilename(CString& strtmp, CString& filenametmp) {
-	if ( str.IsEmpty() ) {
-		strtmp = "";
-		filenametmp = "";
-		return false;
-	}
-	else {
-		// 从尾部查找 如果找到'\' 说明str只是一部分路径
-		int pos = str.ReverseFind('\\');
+CString Volume::getPath(DWORDLONG frn, CString& path) {
+    // Lookup 2
+    Frn_Pfrn_Name_Map::iterator it = frnPfrnNameMap.find(frn);
 
-		if ( pos == -1 ) {
-			strtmp = str;
-			filenametmp = "";
-			return false;
-		}
-		else {
-			strtmp = str.Right(str.GetLength() - (pos + 1));
-			filenametmp = str.Mid(pos + 1);
-			return true;
-		}
-	}
+    if (it != frnPfrnNameMap.end()) {
+        if (0 != it->second.pfrn) {
+            getPath(it->second.pfrn, path);
+        }
+
+        path += it->second.filename;
+        path += (_T("\\"));
+    }
+
+    return path;
 }
-```
-
-```cpp
-int pos = 0;
-
-int end = str.GetLength();
-
-while ( pos < end ) {
-	// For str, get the keywords separated by each space
-	pos = str.Find( _T(' ') );
-
-	CString strtmp;
-	if ( pos == -1 ) {
-		// No spaces
-		strtmp = str;
-		pos = end;
-	} else {
-		strtmp = str.Mid(0, pos-0);
-	}
-
-	if ( !infilename(strtmp, filename) ) {
-		return false;
-	}
-
-	str.Delete(0, pos);
-	str.TrimLeft(' ');
-}
-```
-
-It's convenient to modify the string matching algorithm in the infilename function to achieve certain extensions.
-
-```cpp
-CString filenametmp(filename);
-int pos;
-
-if ( !uplow ) {
-	// Case-sensitive
-	filenametmp.MakeLower();
-	pos = filenametmp.Find(strtmp.MakeLower());
-} else {
-	pos = filenametmp.Find(strtmp);
-}
-
-if ( -1 == pos ) {
-	return false;
-}
-
-if ( !isOrder ) {
-	// No order
-	filename.Delete(0, pos+1);
-}
-```
-
-#### 4.5.5 Path Output
-
-Once we have the matched file name, the next step is to obtain the system path of the file.
-
-Pass the full name of the matched file name into the frnPfrnNameMap hash table constructed by **4.2.2** to recursively obtain the path.
-
-```C++
-CString Volume::getPath(DWORDLONG frn, CString &path) {
-
-	// Look up 2
-	Frn_Pfrn_Name_Map::iterator it = frnPfrnNameMap.find(frn);
-```
-
-```cpp
-if (it != frnPfrnNameMap.end()) {
-
-		  if (0 != it->second.pfrn) {
-			  getPath(it->second.pfrn, path);
-		  }
-
-		  path += it->second.filename;
-		  path += (_T("\\"));
-}
-
-return path;
 ```
 
 ## 5 Complexity Analysis
 
 ### 5.1 Time Complexity
 
-In theory, the time complexity is:
+In theory, the time complexity is as follows:
 
 ![Figure 5-1 Complexity Analysis](https://raw.githubusercontent.com/LeiHao0/BlogAssets/assets/QSearch_05.jpg)
 
-On an AMD Athlon (tm) II X2 245 2.9GHz processor, the result is almost instantaneously completed.
+On an AMD Athlon(tm) II X2 245 2.9GHz processor, the result is almost instant.
 
 ### 5.2 Space Complexity
 
-The number of files on the computer is huge - usually on the order of 100,000 to 1 million - so the program's memory usage can be negligible.
+Since the number of computer files is huge—usually on the order of 100,000 to 1,000,000—the memory usage of the program itself can be neglected.
 
-234,708 files are about 43M.
+With 234,708 files, it takes up about 43MB.
 
-For a system with at least 2G of memory, it is not a burden.
+For systems with at least 2GB of memory, it is not a burden.
 
 ## 6 Problems Encountered
 
-### 6.1 Unable to initialize USN files
+### 6.1 Unable to Initialize USN File
 
-The USN log file on the O drive on the computer could not be initialized, and the following was found through debugging:
+The USN log file on the O drive cannot be initialized. Through debugging, it was found that:
 
 `DeviceIoControl` returns 0, `GetLastError 0x70`
 
-Consulting MSDN, the reason is `ERROR_SHARING_PAUSED`
+Checking MSDN, the reason is `ERROR_SHARING_PAUSED`
 
-It turned out that I forgot to initialize and add the following code, and the program can access the O drive normally:
+It turned out that I forgot to initialize the following code, and the program can access the O drive correctly:
 
 ```cpp
 CREATE_USN_JOURNAL_DATA cujd;
-cujd.MaximumSize = 0; // 0 means default value
-cujd.AllocationDelta = 0; // 0 means default value
+cujd.MaximumSize = 0; // 0 means using the default value
+cujd.AllocationDelta = 0; // 0 means using the default value
 ```
 
-### 6.2 Issue with wchar and char in unicode 
+### 6.2 wchar vs char in Unicode
 
-Initially, I used the string function of the standard library as the processing method for strings, but for double-byte wchar in unicode, I ran into quite a few troubles in string conversion. Finally, all default strings were set to CString and initialized with `_T("")` to solve the problem.
+Initially, in terms of string processing, I used the string from the standard library as the processing method, but I ran into a lot of trouble when converting between the double-byte wchar in Unicode and char. Finally, I used CString as the default string and initialized it with `_T("")` to solve the problem.
 
-### 6.3 Minor issue with #ifdef placement
+### 6.3 Position of `#ifdef`
 
-One cannot set breakpoints inside `#ifdef`. Later realized that `#define` was written before `include`.
+You cannot set breakpoints inside `#ifdef`. Later, I noticed that the `#define` was written before the `include`.
 
 ### 6.4 Parameter Passing
 
-Initially designed with a procedural philosophy and got stuck in trouble passing the same handle by passing arguments. Later switched to the use of class methods, which improved a lot.
+At the beginning, I designed it with a procedural thinking and got stuck in passing the same handle as a parameter. Later, I switched to using class methods to improve it.
 
-## 7 Minor optimizations
+## 7 Minor Optimizations
 
 ### 7.1 Reading Speed
 
-When constructing the hash function, thought of three methods and conducted experiments. Using the `time` function to measure the time used, the results are as follows:
+When building the hash function, I thought of three methods and conducted experiments. I used the time function to measure the time taken, and the results are as follows:
 
-1. Modify the code to read `usn` once and write to a temporary file for later reading and constructing the hash table.
-   - Time averages around 27s per execution.
-2. Use a vector to store data in memory and release afterwards.
-   - Results are excellent with a time nearly 10 times faster!!! As shown in Figure 7-1:
+1. After modifying the code, read the usn at once, save it to a temporary file, and then read and build the hash table.
+   - On average, it takes about 27 seconds each time it runs.
+2. Use a vector to store the data in memory and release it later.
+   - The result is impressive, the time is nearly 10 times faster!!! As shown in Figure 7-1:
 
-![7-1 Traversing All Disks](https://raw.githubusercontent.com/LeiHao0/BlogAssets/assets/QSearch_06.jpg)
+![Figure 7-1 Traversing All Disks](https://raw.githubusercontent.com/LeiHao0/BlogAssets/assets/QSearch_06.jpg)
 
-Completely within an acceptable range.
+It is completely within an acceptable range.
 
-The first run clearly took longer, but subsequent runs pre-read files from the disk cache, causing the speed to skyrocket.
+The first run takes significantly longer, but after that, the files are pre-read from the disk cache, and the speed increases.
 
-Analysis indicates that the hotspots are disk seek time and file reading.
+The hotspots should be the disk seek time and file reading.
 
-### 7.2 File Opening
+### 7.2 Opening Files
 
-In section **4.3.2**, when double-clicking on the file path in the ListBox, opening the response file with the `system()` system function would pop up a black console window, and the main window would be locked until the file was closed before continuing execution. This was very unfavorable for user experience.
+In **4.3.2**, when opening the corresponding file, I initially used the system() system function, but it would pop up a black console window, and the main window would be locked until the file was closed before it could continue executing, which was very detrimental to the user experience.
 
-Switched to calling `ShellExecute` function to open a new process, so the main window could continue executing.
+I changed it to use the ShellExecute function, which creates a new process and allows the main window to continue executing.
 
 ### 7.3 Progress Bar
 
-After Version 1.0 was released, some students reported that there was no prompt when the program was counting the files in the background, so they didn't know when it was done.
+After version 1.0 was released, some users complained that there was no progress indication during the background file counting, so they didn't know when it would be completed.
 
-Added a progress bar to the bottom of the main interface to enhance interactivity, as shown in Figure 7-2:
+Therefore, I added a progress bar at the bottom of the main interface to enhance interaction, as shown in Figure 7-2:
 
 ![Figure 7-2 Progress Bar](https://raw.githubusercontent.com/LeiHao0/BlogAssets/assets/QSearch_07.jpg)
 
-Of course, the thread function has also been modified as necessary:
+Of course, the thread function also made necessary modifications:
 
 # 8 Conclusion
 
-At this point, the basic functions of the program are complete, and it has been tested on multiple computers and different systems (XP and later versions of Windows), with almost no cases of program hanging or crashing.
+With this, the basic functionality of the program is complete. It has been tested on multiple computers and different systems (XP and later versions of Windows) and has not encountered any freezes or crashes.
 
-Due to time constraints, many features have not been implemented, such as the interface cannot stretch, and dynamic statistical file data is not available.
+Due to time constraints, there are still many features that have not been implemented, such as the inability to stretch the interface and the inability to dynamically count file data.
 
 # References
 
-- [1] Hardware White Paper. NTFS File System Specification[OL]. Baidu Document, 2011: 30.
-- [2] Beiyu. Technical Research on NTFS File System[OL]. 2007: 7.
-- [3] Infant. Interactive Encyclopedia[OL]. http://www.hudong.com/wiki/ntfs
-- [4] Microsoft. MSDN Library[OL]. 2012 :
-- [5] Stanley B.Lippman / Josée LaJoie / Barbara E.Moo. C\+\+ Primer[M]. - Addison-Wesley Professional , 2006 : 10.3
-- [6] Eric S. Raymond. Translator: Jiang Hong, He Yuan, Cai Xiaojun. UNIX Art of Programming[m]. Publishing House of Electronics Industry - Social, 2006:
+- [1] Hardware White Paper. NTFS File System Specification[OL]. Baidu Wenku, 2011: 30.
+- [2] Beiyu. Research on Several Technologies of NTFS File System[OL]. 2007: 7.
+- [3] Baby. Interactive Encyclopedia[OL]. http://www.hudong.com/wiki/ntfs
+- [4] Microsoft. MSDN Library[OL]. 2012:
+- [5] Stanley B.Lippman / Josée LaJoie / Barbara E.Moo. C++ Primer[M]. - Addison-Wesley Professional , 2006 : 10.3
+- [6] Eric S. Raymond. Translator: Jiang Hong, He Yuan, Cai Xiaojun. The Art of UNIX Programming[m]. Electronic Industry Press- Society, 2006:
 - [7] Chen Hao. Some Principles of Software Design[OL]. http://coolshell.cn/articles/4535.html
-- [8] Sun Xin. In-depth Explanation of VC++[m]. Publishing House of Electronics Industry, 2006
+- [8] Sun Xin. In-depth Explanation of VC++[m]. Electronic Industry, 2006
 - [9] Jim Beveridge / Robert Wiener. Multithreading Applications in Win32: The Complete Guide to Threads
 - [10] Addison-Wesley Professional, 1996: 223-243
